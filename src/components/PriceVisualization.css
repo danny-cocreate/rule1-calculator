@@ -1,0 +1,102 @@
+.price-visualization {
+  padding: 0;
+}
+
+/* Container for positioned labels */
+.price-labels-container {
+  position: relative;
+  width: 100%;
+  height: 55px;
+  margin-bottom: 4px;
+}
+
+/* Individual positioned label */
+.price-label-positioned {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 140px;
+}
+
+
+.price-label-positioned .label-name {
+  color: #6b7280;
+  font-size: 13px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.price-label-positioned .label-value {
+  color: #1f2937;
+  font-size: 20px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.price-range {
+  position: relative;
+  margin: 16px 0;
+}
+
+.current-price-bar {
+  margin-top: 0;
+  margin-bottom: 40px;
+}
+
+.valuation-bar {
+  margin-top: 0;
+  margin-bottom: 40px;
+}
+
+.price-bar {
+  display: flex;
+  height: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #e5e7eb;
+}
+
+.price-segment {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+/* Bar 1: Current Price - solid purple bar */
+.current-price-segment {
+  width: 100%;
+  background: linear-gradient(90deg, #7c3aed, #a855f7);
+}
+
+/* Bar 2: MOS and Sticker segments */
+.mos-segment {
+  background: linear-gradient(90deg, #1f2937, #111827);
+}
+
+.sticker-segment {
+  background: linear-gradient(90deg, #374151, #6b7280);
+}
+
+.price-markers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+}
+
+.price-marker {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.marker-line {
+  width: 2px;
+  height: 16px;
+  background: white;
+}
+
+

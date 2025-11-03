@@ -1,0 +1,165 @@
+.growth-metrics {
+  background: white !important;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.growth-metrics h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 24px 0;
+}
+
+.custom-growth-rate {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.growth-rate-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.growth-rate-header label {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.reset-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: #14b8a6;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.reset-button:hover {
+  background: #f0fdfa;
+}
+
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.growth-rate-input {
+  width: 80px;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  text-align: center;
+}
+
+.growth-rate-slider {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #14b8a6, #0d9488);
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.growth-rate-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #14b8a6;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.growth-rate-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #14b8a6;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Orange theme for WAIT signal */
+.growth-metrics.signal-wait .growth-rate-slider {
+  background: linear-gradient(90deg, #f97316, #ea580c);
+}
+
+.growth-metrics.signal-wait .growth-rate-slider::-webkit-slider-thumb {
+  background: #f97316;
+}
+
+.growth-metrics.signal-wait .growth-rate-slider::-moz-range-thumb {
+  background: #f97316;
+}
+
+.growth-metrics.signal-wait .reset-button {
+  color: #f97316;
+}
+
+.growth-metrics.signal-wait .reset-button:hover {
+  background: #fff7ed;
+}
+
+/* Green theme for BUY signal */
+.growth-metrics.signal-buy .growth-rate-slider {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.growth-metrics.signal-buy .growth-rate-slider::-webkit-slider-thumb {
+  background: #10b981;
+}
+
+.growth-metrics.signal-buy .growth-rate-slider::-moz-range-thumb {
+  background: #10b981;
+}
+
+.growth-metrics.signal-buy .reset-button {
+  color: #10b981;
+}
+
+.growth-metrics.signal-buy .reset-button:hover {
+  background: #f0fdf4;
+}
+
+.metrics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.metric-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.metric-label {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.metric-value {
+  color: #1f2937;
+  font-size: 16px;
+  font-weight: 700;
+}
+

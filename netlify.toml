@@ -1,0 +1,31 @@
+# Netlify configuration for Rule #1 Calculator
+
+[build]
+  # Directory to run build command in
+  base = "."
+  
+  # Build command
+  command = "npm install && npm run build"
+  
+  # Directory that contains the deploy-ready HTML files and assets
+  publish = "dist"
+
+# Environment variables (set these in Netlify dashboard)
+# VITE_ALPHA_VANTAGE_API_KEY
+# VITE_GEMINI_API_KEY
+
+# Redirect rules for SPA (single-page app)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Optional: Custom headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
