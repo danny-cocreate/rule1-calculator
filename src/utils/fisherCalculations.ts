@@ -104,44 +104,6 @@ function rateProfitMargin(stockData: StockData): { rating: number; justification
 }
 
 /**
- * Rate accounting controls based on debt and liquidity ratios
- */
-function rateAccountingControls(stockData: StockData): { rating: number; justification: string } {
-  const debtToEquity = stockData.debtToEquity || 0;
-  const currentRatio = stockData.currentRatio || 0;
-  
-  // Score debt/equity (lower is better)
-  let debtScore: number;
-  if (debtToEquity <= 0.3) debtScore = 5;
-  else if (debtToEquity <= 0.5) debtScore = 4;
-  else if (debtToEquity <= 1.0) debtScore = 3;
-  else if (debtToEquity <= 2.0) debtScore = 2;
-  else debtScore = 1;
-  
-  // Score current ratio (higher is better, but not too high)
-  let liquidityScore: number;
-  if (currentRatio >= 2.0 && currentRatio <= 3.0) liquidityScore = 5;
-  else if (currentRatio >= 1.5 && currentRatio < 2.0) liquidityScore = 4;
-  else if (currentRatio >= 1.0 && currentRatio < 1.5) liquidityScore = 3;
-  else if (currentRatio >= 0.75) liquidityScore = 2;
-  else liquidityScore = 1;
-  
-  const rating = Math.round((debtScore + liquidityScore) / 2);
-  
-  let justification = `Financial controls rated based on Debt/Equity: ${debtToEquity.toFixed(2)}x and Current Ratio: ${currentRatio.toFixed(2)}. `;
-  
-  if (rating >= 4) {
-    justification += 'Strong balance sheet with conservative leverage and healthy liquidity. Indicates prudent financial management.';
-  } else if (rating >= 3) {
-    justification += 'Adequate financial controls with acceptable leverage and liquidity levels. Room for improvement.';
-  } else {
-    justification += 'Weak financial controls with concerning leverage or liquidity issues. May indicate financial stress or poor management.';
-  }
-  
-  return { rating, justification };
-}
-
-/**
  * Calculate overall Fisher score from all criteria
  */
 export const calculateOverallFisherScore = (criteria: FisherCriterion[]): number => {

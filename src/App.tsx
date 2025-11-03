@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { SearchBar } from './components/SearchBar';
 import { StockResults } from './components/StockResults';
 import { FisherScorecard } from './components/FisherScorecard';
