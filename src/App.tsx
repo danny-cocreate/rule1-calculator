@@ -45,7 +45,15 @@ function App() {
       )}
 
       <main className="main-content">
-        {!stockData && <h1 className="page-title">MOS Calculator</h1>}
+        {!stockData && (
+          <h1 className="page-title">
+            <svg className="page-title-icon" width="48" height="48" viewBox="0 0 32 32" fill="none" style={{ transform: 'scaleX(-1)' }}>
+              <path d="M4 4l12 0c1.5 0 2 0.5 3 1.5l9 9c1 1 1 2.5 0 3.5l-10 10c-1 1-2.5 1-3.5 0l-9-9c-1-1-1.5-1.5-1.5-3L4 4z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="10" cy="10" r="1.5" fill="white"/>
+            </svg>
+            MOS Calculator
+          </h1>
+        )}
         
         <SearchBar onSearch={handleSearch} isLoading={isLoading} signal={signal} />
 
