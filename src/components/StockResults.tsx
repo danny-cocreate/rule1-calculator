@@ -18,12 +18,12 @@ export const StockResults: React.FC<StockResultsProps> = ({ stockData, onSignalC
   const [customGrowthRate, setCustomGrowthRate] = useState(defaultGrowthRate);
   const metrics: CalculatedMetrics = calculateMetrics(stockData, customGrowthRate);
   const [logoError, setLogoError] = useState(false);
-  const [logoUrl, setLogoUrl] = useState(getLogoUrl(stockData.symbol, 80));
+  const [logoUrl, setLogoUrl] = useState(getLogoUrl(stockData.symbol));
   
   const handleLogoError = () => {
     // Try fallback URL (Google favicons) if primary fails
     if (logoUrl.includes('clearbit')) {
-      setLogoUrl(getFallbackLogoUrl(stockData.symbol, 80));
+      setLogoUrl(getFallbackLogoUrl(stockData.symbol));
     } else {
       // If both fail, hide the logo
       setLogoError(true);

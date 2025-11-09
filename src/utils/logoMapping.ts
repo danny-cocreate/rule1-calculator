@@ -121,9 +121,8 @@ export const hasLocalLogo = (symbol: string): boolean => {
  * Get logo URL for a company
  * Tries local logos first, then falls back to external sources
  * @param symbol Stock symbol
- * @param size Logo size (default: 48)
  */
-export const getLogoUrl = (symbol: string, size: number = 48): string => {
+export const getLogoUrl = (symbol: string): string => {
   const cleanSymbol = symbol.toUpperCase().replace('.', '_');
   
   // Try local logo first
@@ -139,12 +138,12 @@ export const getLogoUrl = (symbol: string, size: number = 48): string => {
 /**
  * Get fallback logo URL (Google's favicon service - rarely blocked)
  * @param symbol Stock symbol
- * @param size Logo size (default: 48)
  */
-export const getFallbackLogoUrl = (symbol: string, size: number = 48): string => {
+export const getFallbackLogoUrl = (symbol: string): string => {
   const domain = getCompanyDomain(symbol);
   
   // Google's favicon service - more reliable, less likely to be blocked
-  return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
+  // Using size 128 for better quality
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
 };
 
