@@ -35,7 +35,7 @@ function App() {
       {stockData && (
         <nav className="navbar">
           <div className="nav-content">
-            <svg className="logo-icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <svg className="logo-icon" width="32" height="32" viewBox="0 0 32 32" fill="none" style={{ transform: 'scaleX(-1)' }}>
               <path d="M4 4l12 0c1.5 0 2 0.5 3 1.5l9 9c1 1 1 2.5 0 3.5l-10 10c-1 1-2.5 1-3.5 0l-9-9c-1-1-1.5-1.5-1.5-3L4 4z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <circle cx="10" cy="10" r="1.5" fill="white"/>
             </svg>
