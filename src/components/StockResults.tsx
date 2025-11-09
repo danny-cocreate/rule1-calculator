@@ -4,6 +4,7 @@ import { PriceVisualization } from './PriceVisualization';
 import { GrowthMetrics } from './GrowthMetrics';
 import { FinancialHealth } from './FinancialHealth';
 import { calculateMetrics, calculateDefaultGrowthRate } from '../utils/calculations';
+import { getLogoUrl } from '../utils/logoMapping';
 import './StockResults.css';
 
 interface StockResultsProps {
@@ -16,6 +17,7 @@ export const StockResults: React.FC<StockResultsProps> = ({ stockData, onSignalC
   const defaultGrowthRate = calculateDefaultGrowthRate(stockData);
   const [customGrowthRate, setCustomGrowthRate] = useState(defaultGrowthRate);
   const metrics: CalculatedMetrics = calculateMetrics(stockData, customGrowthRate);
+  const [logoError, setLogoError] = useState(false);
 
   // Notify parent of signal change
   React.useEffect(() => {
@@ -37,16 +39,28 @@ export const StockResults: React.FC<StockResultsProps> = ({ stockData, onSignalC
       <div className="results-header">
         <div className="header-top">
           <div className="company-info">
-            <h2 className="company-name">{stockData.companyName}</h2>
-            <div className="company-meta">
-              <span className="stock-symbol">{stockData.symbol}</span>
-              <span className="last-updated">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 4v4l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5"/>
-                </svg>
-                {stockData.lastUpdated}
-              </span>
+            <div className="company-info-row">
+              {!logoError && (
+                <img 
+                  src={getLogoUrl(stockData.symbol, 80)} 
+                  alt={`${stockData.companyName} logo`}
+                  className="company-logo"
+                  onError={() => setLogoError(true)}
+                />
+              )}
+              <div className="company-text">
+                <h2 className="company-name">{stockData.companyName}</h2>
+                <div className="company-meta">
+                  <span className="stock-symbol">{stockData.symbol}</span>
+                  <span className="last-updated">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 4v4l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5"/>
+                    </svg>
+                    {stockData.lastUpdated}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
           <div className="badge-container">

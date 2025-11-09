@@ -153,6 +153,31 @@
   transform: translateY(0);
 }
 
+.app-footer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+
+.app-footer p {
+  margin: 0;
+}
+
+.app-footer a {
+  color: #14b8a6;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.app-footer a:hover {
+  color: #0d9488;
+  text-decoration: underline;
+}
+
 @media (max-width: 768px) {
   .page-title {
     font-size: 36px;

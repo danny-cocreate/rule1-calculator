@@ -32,17 +32,19 @@ function App() {
 
   return (
     <div className={`app ${signal ? `signal-${signal.toLowerCase()}` : ''}`}>
-      <nav className="navbar">
-        <div className="nav-content">
-          <svg className="logo-icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <path d="M4 16l8 8 16-16" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <h1 className="logo-text">Rule #1 Analysis</h1>
-        </div>
-      </nav>
+      {stockData && (
+        <nav className="navbar">
+          <div className="nav-content">
+            <svg className="logo-icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <path d="M4 16l8 8 16-16" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <h1 className="logo-text">MOS Calculator</h1>
+          </div>
+        </nav>
+      )}
 
       <main className="main-content">
-        <h1 className="page-title">Margin of Safety Calculator</h1>
+        {!stockData && <h1 className="page-title">MOS Calculator</h1>}
         
         <SearchBar onSearch={handleSearch} isLoading={isLoading} signal={signal} />
 
@@ -87,6 +89,15 @@ function App() {
           </>
         )}
       </main>
+
+      <footer className="app-footer">
+        <p>
+          Company logos provided by{' '}
+          <a href="https://clearbit.com" target="_blank" rel="noopener noreferrer">
+            Clearbit
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }
