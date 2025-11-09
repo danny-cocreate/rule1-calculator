@@ -9,8 +9,9 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-// Top 50 companies to download logos for
+// Top 100 companies to download logos for
 const TOP_COMPANIES = [
+  // First 50
   { symbol: 'AAPL', domain: 'apple.com' },
   { symbol: 'MSFT', domain: 'microsoft.com' },
   { symbol: 'GOOGL', domain: 'google.com' },
@@ -61,6 +62,58 @@ const TOP_COMPANIES = [
   { symbol: 'GM', domain: 'gm.com' },
   { symbol: 'INTC', domain: 'intel.com' },
   { symbol: 'AMD', domain: 'amd.com' },
+  
+  // Next 50
+  { symbol: 'ORCL', domain: 'oracle.com' },
+  { symbol: 'CRM', domain: 'salesforce.com' },
+  { symbol: 'ADBE', domain: 'adobe.com' },
+  { symbol: 'CSCO', domain: 'cisco.com' },
+  { symbol: 'IBM', domain: 'ibm.com' },
+  { symbol: 'QCOM', domain: 'qualcomm.com' },
+  { symbol: 'TSM', domain: 'tsmc.com' },
+  { symbol: 'AVGO', domain: 'broadcom.com' },
+  { symbol: 'TXN', domain: 'ti.com' },
+  { symbol: 'AMAT', domain: 'appliedmaterials.com' },
+  { symbol: 'PYPL', domain: 'paypal.com' },
+  { symbol: 'SQ', domain: 'squareup.com' },
+  { symbol: 'SHOP', domain: 'shopify.com' },
+  { symbol: 'UBER', domain: 'uber.com' },
+  { symbol: 'LYFT', domain: 'lyft.com' },
+  { symbol: 'ABNB', domain: 'airbnb.com' },
+  { symbol: 'COIN', domain: 'coinbase.com' },
+  { symbol: 'SNAP', domain: 'snap.com' },
+  { symbol: 'PINS', domain: 'pinterest.com' },
+  { symbol: 'SPOT', domain: 'spotify.com' },
+  { symbol: 'ROKU', domain: 'roku.com' },
+  { symbol: 'TWLO', domain: 'twilio.com' },
+  { symbol: 'ZM', domain: 'zoom.us' },
+  { symbol: 'DOCU', domain: 'docusign.com' },
+  { symbol: 'SNOW', domain: 'snowflake.com' },
+  { symbol: 'NOW', domain: 'servicenow.com' },
+  { symbol: 'PANW', domain: 'paloaltonetworks.com' },
+  { symbol: 'CRWD', domain: 'crowdstrike.com' },
+  { symbol: 'ZS', domain: 'zscaler.com' },
+  { symbol: 'NET', domain: 'cloudflare.com' },
+  { symbol: 'DDOG', domain: 'datadoghq.com' },
+  { symbol: 'MDB', domain: 'mongodb.com' },
+  { symbol: 'LOW', domain: 'lowes.com' },
+  { symbol: 'CVS', domain: 'cvs.com' },
+  { symbol: 'WBA', domain: 'walgreens.com' },
+  { symbol: 'UPS', domain: 'ups.com' },
+  { symbol: 'FDX', domain: 'fedex.com' },
+  { symbol: 'DE', domain: 'deere.com' },
+  { symbol: 'RTX', domain: 'rtx.com' },
+  { symbol: 'LLY', domain: 'lilly.com' },
+  { symbol: 'BMY', domain: 'bms.com' },
+  { symbol: 'GILD', domain: 'gilead.com' },
+  { symbol: 'AMGN', domain: 'amgen.com' },
+  { symbol: 'AXP', domain: 'americanexpress.com' },
+  { symbol: 'BLK', domain: 'blackrock.com' },
+  { symbol: 'SCHW', domain: 'schwab.com' },
+  { symbol: 'SPGI', domain: 'spglobal.com' },
+  { symbol: 'AIG', domain: 'aig.com' },
+  { symbol: 'MET', domain: 'metlife.com' },
+  { symbol: 'PRU', domain: 'prudential.com' },
 ];
 
 const LOGOS_DIR = path.join(__dirname, '..', 'public', 'logos');

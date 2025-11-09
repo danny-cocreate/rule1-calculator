@@ -98,15 +98,21 @@ export const getCompanyDomain = (symbol: string): string => {
  */
 export const hasLocalLogo = (symbol: string): boolean => {
   const cleanSymbol = symbol.toUpperCase().replace('.', '_');
-  // We'll check if the logo exists at build time
-  // For now, return true for top 50 companies
+  // Top 100 companies with local logos
   const topSymbols = [
+    // First 50
     'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX',
     'JPM', 'V', 'MA', 'BAC', 'WFC', 'GS', 'MS', 'C', 'BRK_B', 'BRK_A',
     'WMT', 'HD', 'MCD', 'NKE', 'SBUX', 'TGT', 'COST', 'DIS', 'KO', 'PEP',
     'JNJ', 'UNH', 'PFE', 'ABBV', 'TMO', 'MRK', 'ABT',
     'BA', 'CAT', 'GE', 'MMM', 'HON', 'LMT',
-    'T', 'VZ', 'CMCSA', 'XOM', 'CVX', 'COP', 'F', 'GM', 'INTC', 'AMD'
+    'T', 'VZ', 'CMCSA', 'XOM', 'CVX', 'COP', 'F', 'GM', 'INTC', 'AMD',
+    // Next 50
+    'ORCL', 'CRM', 'ADBE', 'CSCO', 'IBM', 'QCOM', 'TSM', 'AVGO', 'TXN', 'AMAT',
+    'PYPL', 'SQ', 'SHOP', 'UBER', 'LYFT', 'ABNB', 'COIN', 'SNAP', 'PINS', 'SPOT',
+    'ROKU', 'TWLO', 'ZM', 'DOCU', 'SNOW', 'NOW', 'PANW', 'CRWD', 'ZS', 'NET',
+    'DDOG', 'MDB', 'LOW', 'CVS', 'WBA', 'UPS', 'FDX', 'DE', 'RTX', 'LLY',
+    'BMY', 'GILD', 'AMGN', 'AXP', 'BLK', 'SCHW', 'SPGI', 'AIG', 'MET', 'PRU'
   ];
   return topSymbols.includes(cleanSymbol);
 };
