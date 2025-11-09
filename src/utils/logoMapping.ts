@@ -108,8 +108,6 @@ export const getLogoUrl = (symbol: string, size: number = 48): string => {
   // This will be deprecated in Dec 2025, but works for now
   const url = `https://logo.clearbit.com/${domain}?size=${size}`;
   
-  console.log('Logo URL for', symbol, ':', url);
-  
   return url;
 };
 
