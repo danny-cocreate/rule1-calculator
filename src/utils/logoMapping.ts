@@ -94,19 +94,40 @@ export const getCompanyDomain = (symbol: string): string => {
 };
 
 /**
+ * Check if we have a local logo for this symbol
+ */
+export const hasLocalLogo = (symbol: string): boolean => {
+  const cleanSymbol = symbol.toUpperCase().replace('.', '_');
+  // We'll check if the logo exists at build time
+  // For now, return true for top 50 companies
+  const topSymbols = [
+    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX',
+    'JPM', 'V', 'MA', 'BAC', 'WFC', 'GS', 'MS', 'C', 'BRK_B', 'BRK_A',
+    'WMT', 'HD', 'MCD', 'NKE', 'SBUX', 'TGT', 'COST', 'DIS', 'KO', 'PEP',
+    'JNJ', 'UNH', 'PFE', 'ABBV', 'TMO', 'MRK', 'ABT',
+    'BA', 'CAT', 'GE', 'MMM', 'HON', 'LMT',
+    'T', 'VZ', 'CMCSA', 'XOM', 'CVX', 'COP', 'F', 'GM', 'INTC', 'AMD'
+  ];
+  return topSymbols.includes(cleanSymbol);
+};
+
+/**
  * Get logo URL for a company
- * Uses multiple sources with client-side fallback
+ * Tries local logos first, then falls back to external sources
  * @param symbol Stock symbol
  * @param size Logo size (default: 48)
  */
 export const getLogoUrl = (symbol: string, size: number = 48): string => {
+  const cleanSymbol = symbol.toUpperCase().replace('.', '_');
+  
+  // Try local logo first
+  if (hasLocalLogo(symbol)) {
+    return `/logos/${cleanSymbol}.png`;
+  }
+  
+  // Fall back to external sources
   const domain = getCompanyDomain(symbol);
-  
-  // Use Clearbit Logo API - free, no authentication required
-  // Note: May be blocked by some ad blockers/privacy extensions
-  const url = `https://logo.clearbit.com/${domain}`;
-  
-  return url;
+  return `https://logo.clearbit.com/${domain}`;
 };
 
 /**
