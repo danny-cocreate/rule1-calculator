@@ -95,7 +95,7 @@ export const getCompanyDomain = (symbol: string): string => {
 
 /**
  * Get logo URL for a company
- * Uses Clearbit as primary (no auth needed) and logo.dev as fallback
+ * Uses multiple sources with client-side fallback
  * @param symbol Stock symbol
  * @param size Logo size (default: 48)
  */
@@ -103,9 +103,21 @@ export const getLogoUrl = (symbol: string, size: number = 48): string => {
   const domain = getCompanyDomain(symbol);
   
   // Use Clearbit Logo API - free, no authentication required
-  // This will be deprecated in Dec 2025, but works for now
-  const url = `https://logo.clearbit.com/${domain}?size=${size}`;
+  // Note: May be blocked by some ad blockers/privacy extensions
+  const url = `https://logo.clearbit.com/${domain}`;
   
   return url;
+};
+
+/**
+ * Get fallback logo URL (Google's favicon service - rarely blocked)
+ * @param symbol Stock symbol
+ * @param size Logo size (default: 48)
+ */
+export const getFallbackLogoUrl = (symbol: string, size: number = 48): string => {
+  const domain = getCompanyDomain(symbol);
+  
+  // Google's favicon service - more reliable, less likely to be blocked
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
 };
 

@@ -4,7 +4,7 @@ import { PriceVisualization } from './PriceVisualization';
 import { GrowthMetrics } from './GrowthMetrics';
 import { FinancialHealth } from './FinancialHealth';
 import { calculateMetrics, calculateDefaultGrowthRate } from '../utils/calculations';
-import { getLogoUrl } from '../utils/logoMapping';
+import { getLogoUrl, getFallbackLogoUrl } from '../utils/logoMapping';
 import './StockResults.css';
 
 interface StockResultsProps {
@@ -18,6 +18,17 @@ export const StockResults: React.FC<StockResultsProps> = ({ stockData, onSignalC
   const [customGrowthRate, setCustomGrowthRate] = useState(defaultGrowthRate);
   const metrics: CalculatedMetrics = calculateMetrics(stockData, customGrowthRate);
   const [logoError, setLogoError] = useState(false);
+  const [logoUrl, setLogoUrl] = useState(getLogoUrl(stockData.symbol, 80));
+  
+  const handleLogoError = () => {
+    // Try fallback URL (Google favicons) if primary fails
+    if (logoUrl.includes('clearbit')) {
+      setLogoUrl(getFallbackLogoUrl(stockData.symbol, 80));
+    } else {
+      // If both fail, hide the logo
+      setLogoError(true);
+    }
+  };
 
   // Notify parent of signal change
   React.useEffect(() => {
@@ -42,10 +53,10 @@ export const StockResults: React.FC<StockResultsProps> = ({ stockData, onSignalC
             <div className="company-info-row">
               {!logoError && (
                 <img 
-                  src={getLogoUrl(stockData.symbol, 80)} 
+                  src={logoUrl} 
                   alt={`${stockData.companyName} logo`}
                   className="company-logo"
-                  onError={() => setLogoError(true)}
+                  onError={handleLogoError}
                 />
               )}
               <div className="company-text">
