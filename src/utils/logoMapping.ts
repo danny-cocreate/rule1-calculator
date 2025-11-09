@@ -58,7 +58,6 @@ const DOMAIN_MAP: Record<string, string> = {
   'T': 'att.com',
   'VZ': 'verizon.com',
   'CMCSA': 'comcastcorporation.com',
-  'DIS': 'disney.com',
   
   // Energy
   'XOM': 'exxonmobil.com',
@@ -68,7 +67,6 @@ const DOMAIN_MAP: Record<string, string> = {
   // Automotive
   'F': 'ford.com',
   'GM': 'gm.com',
-  'TSLA': 'tesla.com',
   
   // Semiconductors
   'INTC': 'intel.com',
