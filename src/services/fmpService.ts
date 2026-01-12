@@ -13,6 +13,31 @@ const API_KEY = import.meta.env.VITE_FMP_API_KEY || '6HhHKgYFoKOlDJqi4THx75eTc6w
 const BASE_URL = 'https://financialmodelingprep.com/api/v3';
 
 /**
+ * Quote data from FMP API (price, volume, etc.)
+ */
+export interface FMPQuote {
+  symbol?: string;
+  name?: string;
+  price?: number;
+  changesPercentage?: number;
+  change?: number;
+  dayLow?: number;
+  dayHigh?: number;
+  yearHigh?: number;
+  yearLow?: number;
+  marketCap?: number;
+  priceAvg50?: number;
+  priceAvg200?: number;
+  volume?: number;
+  avgVolume?: number;
+  exchange?: string;
+  open?: number;
+  previousClose?: number;
+  eps?: number;
+  pe?: number;
+}
+
+/**
  * Fundamentals data from FMP API
  */
 export interface FMPFundamentals {
@@ -210,6 +235,53 @@ const mapResponseToFundamentals = (
   }
 
   return fundamentals;
+};
+
+/**
+ * Fetch real-time quote data from FMP API
+ * Provides current price, volume, market cap, etc.
+ */
+export const fetchQuote = async (symbol: string): Promise<FMPQuote> => {
+  if (!API_KEY) {
+    throw new Error('FMP API key is not configured. Please set VITE_FMP_API_KEY in your environment variables.');
+  }
+
+  try {
+    const response = await axios.get(`${BASE_URL}/quote/${symbol}`, {
+      params: { apikey: API_KEY },
+      headers: { 'Accept': 'application/json' },
+      timeout: 5000
+    });
+
+    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+      const quote = response.data[0];
+      console.log('FMP: Quote data fetched successfully');
+      return quote;
+    } else if (response.data && !Array.isArray(response.data)) {
+      console.log('FMP: Quote data fetched successfully (single object)');
+      return response.data;
+    } else {
+      throw new Error('No quote data returned from FMP API');
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      
+      if (status === 401 || status === 403) {
+        const errorMessage = error.response?.data?.Error || error.response?.data?.message || 'Invalid API key or access denied';
+        throw new Error(`FMP Quote API Error (403): ${errorMessage}. Please check your API key.`);
+      }
+      
+      if (status === 404) {
+        throw new Error(`Stock symbol "${symbol}" not found in FMP database.`);
+      }
+      
+      const errorMessage = error.response?.data?.Error || error.response?.data?.message || error.message;
+      throw new Error(`FMP Quote API Error: ${errorMessage}`);
+    }
+    
+    throw new Error(`FMP Quote API Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 };
 
 /**
