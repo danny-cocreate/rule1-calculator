@@ -68,13 +68,14 @@ def run_scuttlebutt_research(
     # Step 2: Analyze signals with OpenRouter (or Ollama fallback)
     if USE_OPENROUTER:
         print(f'Step 2: Analyzing signals with OpenRouter...', file=sys.stderr)
-        signals_data = {
+        # Create analysis input (preserve original signals_data for result)
+        analysis_input = {
             'signals': signals,
             'companyName': company_name,
             'ticker': ticker,
             'researchDate': datetime.now().isoformat()
         }
-        analysis_result = analyze_signals_with_openrouter(signals_data)
+        analysis_result = analyze_signals_with_openrouter(analysis_input)
     else:
         print(f'Step 2: Analyzing signals with Ollama...', file=sys.stderr)
         analysis_result = analyze_signals(
@@ -88,7 +89,7 @@ def run_scuttlebutt_research(
     result = {
         'company': company_name,
         'ticker': ticker,
-        'inputs': signals_data['inputs'],
+        'inputs': signals_data['inputs'],  # Use original signals_data with 'inputs'
         'signals': signals,
         'analysis': analysis_result,
         'researchDate': datetime.now().isoformat(),
