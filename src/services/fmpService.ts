@@ -356,7 +356,6 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
     let ratiosData: any = null;
     let growthData: any = null;
     let profileData: any = null;
-    let incomeStatementData: any = null; // Store for ROE calculation
 
     // Try Key Metrics TTM first (most comprehensive single endpoint)
     // New endpoint format: /stable/key-metrics-ttm?symbol=AAPL&apikey=KEY
@@ -462,11 +461,6 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
           headers: { 'Accept': 'application/json' },
           timeout: 5000
         });
-        
-        // Store income statement data for potential ROE calculation
-        if (incomeResponse.data) {
-          incomeStatementData = incomeResponse.data;
-        }
         
         if (incomeResponse.data && Array.isArray(incomeResponse.data) && incomeResponse.data.length >= 2) {
           const statements = incomeResponse.data;
@@ -587,7 +581,7 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
       
       if (yahooRoeResponse.data && yahooRoeResponse.data.roe) {
         fundamentals.roe = yahooRoeResponse.data.roe;
-        console.log('FMP: ✅ Yahoo Finance ROE:', fundamentals.roe.toFixed(2), '%');
+        console.log('FMP: ✅ Yahoo Finance ROE:', fundamentals.roe?.toFixed(2) || 'N/A', '%');
       } else {
         console.warn('FMP: Yahoo Finance ROE not available');
       }
