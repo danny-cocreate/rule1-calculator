@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 import requests
-import yfinance as yf
+import time
 
 from services.scuttlebutt import research_company
 
@@ -73,30 +73,102 @@ async def research_fisher_criteria(request: FisherResearchRequest):
 @router.get('/yahoo-roe/{symbol}')
 async def get_yahoo_roe(symbol: str):
     """
-    Get ROE from Yahoo Finance using yfinance library.
+    Get ROE from Yahoo Finance JSON API directly.
     Falls back to Yahoo Finance when FMP data is incorrect.
     """
-    try:
-        # Use yfinance library which handles headers, cookies, and rate limiting automatically
-        ticker = yf.Ticker(symbol)
-        info = ticker.info
-        
-        # Try multiple field names for ROE
-        roe_raw = (
-            info.get('returnOnEquity') or
-            info.get('roe') or
-            info.get('returnOnEquityTTM')
-        )
-        
-        if roe_raw is not None:
-            # yfinance returns ROE as a decimal (e.g., 1.0736 = 107.36%)
-            # Convert to percentage
-            roe_percentage = roe_raw * 100
-            return {'symbol': symbol, 'roe': roe_percentage}
-        else:
-            raise HTTPException(status_code=404, detail=f'ROE not found for symbol {symbol}')
+    max_retries = 3
+    retry_delay = 2  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            # Use the same endpoint that yfinance uses
+            url = f'https://query1.finance.yahoo.com/v10/finance/quoteSummary/{symbol}'
+            params = {'modules': 'keyStatistics,financialData'}
             
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f'Error fetching ROE from Yahoo Finance: {str(e)}')
+            # Comprehensive browser headers to avoid 401/403
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'application/json',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Referer': 'https://finance.yahoo.com/',
+                'Origin': 'https://finance.yahoo.com',
+                'Connection': 'keep-alive',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-site'
+            }
+            
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            
+            # Handle rate limiting with retry
+            if response.status_code == 429:
+                if attempt < max_retries - 1:
+                    wait_time = retry_delay * (attempt + 1)  # Exponential backoff
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    raise HTTPException(
+                        status_code=503, 
+                        detail=f'Yahoo Finance rate limit exceeded. Please try again later.'
+                    )
+            
+            # Handle auth errors
+            if response.status_code == 401 or response.status_code == 403:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f'Yahoo Finance API access denied. Status: {response.status_code}'
+                )
+            
+            # Handle other errors
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f'Yahoo Finance API error. Status: {response.status_code}'
+                )
+            
+            data = response.json()
+            
+            # Extract ROE from keyStatistics
+            quote_summary = data.get('quoteSummary', {})
+            result = quote_summary.get('result', [])
+            
+            if not result:
+                raise HTTPException(status_code=404, detail=f'No data found for symbol {symbol}')
+            
+            key_stats = result[0].get('keyStatistics', {})
+            financial_data = result[0].get('financialData', {})
+            
+            # Try keyStatistics first
+            roe_data = key_stats.get('returnOnEquity', {})
+            roe_raw = roe_data.get('raw')
+            
+            # Fallback to financialData
+            if roe_raw is None:
+                roe_data = financial_data.get('returnOnEquity', {})
+                roe_raw = roe_data.get('raw')
+            
+            if roe_raw is not None:
+                # Convert to percentage (Yahoo returns as decimal, e.g., 1.0736 = 107.36%)
+                roe_percentage = roe_raw * 100
+                return {'symbol': symbol, 'roe': roe_percentage}
+            else:
+                raise HTTPException(status_code=404, detail=f'ROE not found for symbol {symbol}')
+                
+        except HTTPException:
+            raise
+        except requests.exceptions.Timeout:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                continue
+            raise HTTPException(status_code=504, detail='Yahoo Finance API timeout')
+        except requests.exceptions.RequestException as e:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                continue
+            raise HTTPException(status_code=500, detail=f'Network error: {str(e)}')
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f'Error fetching ROE: {str(e)}')
+    
+    # Should never reach here, but just in case
+    raise HTTPException(status_code=500, detail='Failed to fetch ROE after retries')
