@@ -170,7 +170,7 @@ const mapResponseToFundamentals = (
   fundamentals.peRatio = normalizeRatio(peValue);
 
   // ROE: Try multiple field names (new /stable/ endpoints use returnOnEquityTTM)
-  // Note: ROE might be in Key Metrics TTM, Ratios TTM, or need to calculate from income statement
+  // Note: FMP's ROE data may be incorrect/outdated, so we'll also try to calculate it
   const roeFields = [
     metrics.returnOnEquityTTM,  // New /stable/ endpoint field (Key Metrics TTM) - PRIMARY
     ratios.returnOnEquityTTM,   // Also check Ratios TTM
@@ -182,14 +182,18 @@ const mapResponseToFundamentals = (
   const roeValue = roeFields.find(v => v !== undefined && v !== null);
   fundamentals.roe = normalizeROE(roeValue);
   
-  // Debug: Log ROE extraction
+  // Debug: Log ROE extraction and warn if suspiciously low
   if (fundamentals.roe === null) {
     console.warn('FMP: ROE not found. Available ROE-related keys in metrics:', 
       Object.keys(metrics).filter(k => k.toLowerCase().includes('roe') || k.toLowerCase().includes('return')).join(', '));
     console.warn('FMP: ROE-related keys in ratios:', 
       Object.keys(ratios).filter(k => k.toLowerCase().includes('roe') || k.toLowerCase().includes('return')).join(', '));
   } else {
-    console.log('FMP: ROE extracted:', fundamentals.roe, '%');
+    console.log('FMP: ROE extracted from API:', fundamentals.roe, '% (raw value:', roeValue, ')');
+    // Warn if ROE seems suspiciously low (< 5%) - might indicate wrong data
+    if (fundamentals.roe < 5 && fundamentals.roe > 0) {
+      console.warn('FMP: ROE seems unusually low (', fundamentals.roe, '%). FMP data may be incorrect. Consider calculating from income statement.');
+    }
   }
 
   // Debt-to-Equity: Try multiple field names (new /stable/ endpoints use debtToEquityRatioTTM)
