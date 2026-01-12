@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 
-from ..services.scuttlebutt import research_company
+from services.scuttlebutt import research_company
 
 router = APIRouter(prefix='/fisher-research', tags=['fisher'])
 
