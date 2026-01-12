@@ -78,6 +78,11 @@ async def get_yahoo_roe(symbol: str):
     """
     max_retries = 3
     retry_delay = 2  # seconds
+    initial_delay = 1  # seconds - small delay before first request to avoid immediate rate limits
+    
+    # Small initial delay to avoid hitting rate limits immediately
+    if max_retries > 0:
+        time.sleep(initial_delay)
     
     for attempt in range(max_retries):
         try:
