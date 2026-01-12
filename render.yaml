@@ -5,7 +5,7 @@ services:
   - type: web
     name: fisher-research-api
     env: python
-    buildCommand: cd backend && pip install -r requirements.txt
+    buildCommand: cd backend && pip install --upgrade pip && pip install -r requirements.txt
     startCommand: cd backend && python -m uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: TAVILY_API_KEY
