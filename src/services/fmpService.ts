@@ -222,6 +222,12 @@ const mapResponseToFundamentals = (
  * Falls back to additional endpoints if needed
  */
 export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals> => {
+  // Debug: Log API key status (without exposing full key)
+  const apiKeySet = !!API_KEY;
+  const apiKeyPreview = API_KEY ? `${API_KEY.substring(0, 8)}...${API_KEY.substring(API_KEY.length - 4)}` : 'NOT SET';
+  console.log('FMP API Key Status:', apiKeySet ? `Set (${apiKeyPreview})` : 'NOT SET');
+  console.log('FMP API Key Source:', import.meta.env.VITE_FMP_API_KEY ? 'Environment variable' : 'Fallback/default');
+  
   if (!API_KEY) {
     console.warn('FMP API key not configured, using default values for fundamentals');
     return {};
