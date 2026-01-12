@@ -204,21 +204,35 @@ const mapResponseToFundamentals = (
   const currentRatioValue = currentRatioFields.find(v => v !== undefined && v !== null);
   fundamentals.currentRatio = normalizeRatio(currentRatioValue);
 
-  // EPS Growth: From growth endpoint
+  // EPS Growth: From growth endpoint (new /stable/ endpoints use growthEPS)
+  // growthEPS is a decimal (0.39 = 39%), normalizeGrowth will convert to percentage
   const epsGrowthFields = [
-    growth.growthEps,
+    growth.growthEPS,              // New /stable/ endpoint field (PRIMARY) - capital EPS
+    growth.growthEPSDiluted,       // Also try diluted EPS growth
+    growth.growthEps,               // Fallback (lowercase)
     growth.growthEarningsPerShare,
     growth.epsGrowth,
     growth.earningsPerShareGrowth
   ];
   const epsGrowthValue = epsGrowthFields.find(v => v !== undefined && v !== null);
   if (epsGrowthValue !== undefined && epsGrowthValue !== null) {
-    fundamentals.epsGrowth = normalizeGrowth(epsGrowthValue);
+    const normalized = normalizeGrowth(epsGrowthValue);
+    if (normalized !== null) {
+      fundamentals.epsGrowth = normalized;
+      console.log('FMP: EPS Growth extracted:', normalized, '% from field:', 
+        growth.growthEPS !== undefined ? 'growthEPS' : 
+        growth.growthEPSDiluted !== undefined ? 'growthEPSDiluted' : 'other');
+    } else {
+      console.warn('FMP: EPS Growth value found but invalid:', epsGrowthValue);
+    }
+  } else {
+    console.warn('FMP: EPS Growth not found. Available growth fields:', Object.keys(growth).filter(k => k.toLowerCase().includes('eps') || k.toLowerCase().includes('growth')).join(', '));
   }
 
-  // Sales/Revenue Growth: From growth endpoint
+  // Sales/Revenue Growth: From growth endpoint (new /stable/ endpoints use growthRevenue)
+  // growthRevenue is a decimal (0.14 = 14%), normalizeGrowth will convert to percentage
   const salesGrowthFields = [
-    growth.growthRevenue,
+    growth.growthRevenue,          // New /stable/ endpoint field (PRIMARY)
     growth.growthSales,
     growth.revenueGrowth,
     growth.salesGrowth,
@@ -227,7 +241,16 @@ const mapResponseToFundamentals = (
   ];
   const salesGrowthValue = salesGrowthFields.find(v => v !== undefined && v !== null);
   if (salesGrowthValue !== undefined && salesGrowthValue !== null) {
-    fundamentals.salesGrowth = normalizeGrowth(salesGrowthValue);
+    const normalized = normalizeGrowth(salesGrowthValue);
+    if (normalized !== null) {
+      fundamentals.salesGrowth = normalized;
+      console.log('FMP: Sales Growth extracted:', normalized, '% from field:', 
+        growth.growthRevenue !== undefined ? 'growthRevenue' : 'other');
+    } else {
+      console.warn('FMP: Sales Growth value found but invalid:', salesGrowthValue);
+    }
+  } else {
+    console.warn('FMP: Sales Growth not found. Available growth fields:', Object.keys(growth).filter(k => k.toLowerCase().includes('revenue') || k.toLowerCase().includes('sales')).join(', '));
   }
 
   // Book Value Growth: From growth endpoint
