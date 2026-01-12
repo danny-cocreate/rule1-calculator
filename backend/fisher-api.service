@@ -1,0 +1,18 @@
+[Unit]
+Description=Fisher Research API
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+WorkingDirectory=/path/to/rule1-calculator
+Environment="PATH=/usr/bin:/usr/local/bin"
+EnvironmentFile=/path/to/rule1-calculator/.env
+ExecStart=/usr/bin/python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
