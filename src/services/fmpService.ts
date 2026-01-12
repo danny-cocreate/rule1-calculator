@@ -594,6 +594,55 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
       metricsData
     );
 
+    // If ROE seems suspiciously low (< 5%), try to calculate it from income statement and balance sheet
+    // FMP's ROE data may be incorrect/outdated (e.g., NVDA shows 1% but should be ~107%)
+    if (fundamentals.roe !== null && fundamentals.roe < 5 && fundamentals.roe > 0) {
+      console.log('FMP: ROE seems unusually low (', fundamentals.roe.toFixed(2), '%), attempting to calculate from financial statements...');
+      try {
+        // Fetch income statement and balance sheet to calculate ROE
+        const [incomeResponse, balanceResponse] = await Promise.all([
+          axios.get(`${BASE_URL}/income-statement`, {
+            params: { symbol: symbol, apikey: API_KEY, limit: 1 },
+            headers: { 'Accept': 'application/json' },
+            timeout: 5000
+          }).catch(() => null),
+          axios.get(`${BASE_URL}/balance-sheet-statement`, {
+            params: { symbol: symbol, apikey: API_KEY, limit: 1 },
+            headers: { 'Accept': 'application/json' },
+            timeout: 5000
+          }).catch(() => null)
+        ]);
+
+        if (incomeResponse?.data && balanceResponse?.data) {
+          const income = Array.isArray(incomeResponse.data) ? incomeResponse.data[0] : incomeResponse.data;
+          const balance = Array.isArray(balanceResponse.data) ? balanceResponse.data[0] : balanceResponse.data;
+          
+          const netIncome = income.netIncome || income.netIncomeCommonStockholders;
+          const shareholdersEquity = balance.totalStockholdersEquity || balance.shareholdersEquity || balance.commonStockEquity;
+          
+          if (netIncome && shareholdersEquity && shareholdersEquity !== 0) {
+            const calculatedROE = (netIncome / Math.abs(shareholdersEquity)) * 100;
+            if (calculatedROE > fundamentals.roe) {
+              console.log('FMP: ✅ Calculated ROE from financial statements:', calculatedROE.toFixed(2), '% (was', fundamentals.roe.toFixed(2), '%)');
+              fundamentals.roe = calculatedROE;
+            } else {
+              console.log('FMP: Calculated ROE (', calculatedROE.toFixed(2), '%) is not higher than API value, keeping API value');
+            }
+          } else {
+            console.warn('FMP: Could not calculate ROE - Net Income:', netIncome, 'Equity:', shareholdersEquity);
+          }
+        } else {
+          console.warn('FMP: Could not fetch income statement or balance sheet to calculate ROE');
+        }
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 402) {
+          console.warn('FMP: Income/Balance Sheet endpoints require paid tier (402). Using API ROE value.');
+        } else {
+          console.warn('FMP: Failed to calculate ROE from financial statements:', error instanceof Error ? error.message : 'Unknown error');
+        }
+      }
+    }
+
     console.log('FMP fundamentals extracted:', fundamentals);
     return fundamentals;
 
