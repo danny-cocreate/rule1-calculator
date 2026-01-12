@@ -15,6 +15,7 @@ import json
 from bs4 import BeautifulSoup
 
 from services.scuttlebutt import research_company
+from services.sec_edgar import get_sec_roe
 
 router = APIRouter(prefix='/fisher-research', tags=['fisher'])
 
@@ -76,8 +77,28 @@ async def research_fisher_criteria(request: FisherResearchRequest):
 @router.get('/yahoo-roe/{symbol}')
 async def get_yahoo_roe(symbol: str):
     """
-    Get ROE from Yahoo Finance key statistics page using BeautifulSoup.
-    More reliable than JSON API which has strict rate limits.
+    Get ROE from SEC EDGAR API (primary) or Yahoo Finance (fallback).
+    
+    SEC EDGAR is the primary source - official, free, and reliable.
+    Falls back to Yahoo Finance if SEC data is unavailable.
+    """
+    # Try SEC EDGAR first (official, reliable, free)
+    try:
+        print(f"Attempting to fetch ROE from SEC EDGAR for {symbol}...")
+        roe = get_sec_roe(symbol)
+        if roe is not None:
+            print(f"✅ SEC EDGAR ROE: {roe:.2f}%")
+            return {'symbol': symbol, 'roe': roe, 'source': 'sec'}
+    except Exception as e:
+        print(f"SEC EDGAR failed: {e}, falling back to Yahoo Finance...")
+    
+    # Fallback to Yahoo Finance if SEC fails
+    return await _get_yahoo_roe_fallback(symbol)
+
+
+async def _get_yahoo_roe_fallback(symbol: str):
+    """
+    Fallback: Get ROE from Yahoo Finance key statistics page using BeautifulSoup.
     """
     max_retries = 3
     retry_delay = 2  # seconds
