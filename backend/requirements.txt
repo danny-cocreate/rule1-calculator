@@ -4,9 +4,6 @@ pydantic==2.10.0
 python-dotenv==1.0.1
 requests==2.32.3
 httpx==0.27.2
-beautifulsoup4==4.12.3
-lxml==5.1.0
-
 # Using newer versions with pre-built wheels to avoid Rust compilation issues
 # These versions have wheels available for all platforms
-# BeautifulSoup4 for scraping Yahoo Finance HTML pages (more reliable than JSON API)
+# BeautifulSoup4 and lxml removed - no longer needed (Yahoo Finance fallback removed)

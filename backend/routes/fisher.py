@@ -9,10 +9,6 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 import requests
-import time
-import re
-import json
-from bs4 import BeautifulSoup
 
 from backend.services.scuttlebutt import research_company
 from backend.services.sec_edgar import get_sec_roe
@@ -74,213 +70,31 @@ async def research_fisher_criteria(request: FisherResearchRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get('/yahoo-roe/{symbol}')
-async def get_yahoo_roe(symbol: str):
+@router.get('/roe/{symbol}')
+async def get_roe(symbol: str):
     """
-    Get ROE from SEC EDGAR API (primary) or Yahoo Finance (fallback).
+    Get ROE from SEC EDGAR API.
     
-    SEC EDGAR is the primary source - official, free, and reliable.
-    Falls back to Yahoo Finance if SEC data is unavailable.
+    SEC EDGAR is the official, free, and reliable source for financial data.
     """
-    # Try SEC EDGAR first (official, reliable, free)
     try:
         print(f"Attempting to fetch ROE from SEC EDGAR for {symbol}...")
         roe = get_sec_roe(symbol)
         if roe is not None:
             print(f"✅ SEC EDGAR ROE: {roe:.2f}%")
             return {'symbol': symbol, 'roe': roe, 'source': 'sec'}
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=f'ROE not available from SEC EDGAR for {symbol}. The company may not have filed the required financial statements.'
+            )
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"SEC EDGAR failed: {e}, falling back to Yahoo Finance...")
-    
-    # Fallback to Yahoo Finance if SEC fails
-    return await _get_yahoo_roe_fallback(symbol)
+        print(f"SEC EDGAR failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f'Failed to fetch ROE from SEC EDGAR for {symbol}: {str(e)}'
+        )
 
 
-async def _get_yahoo_roe_fallback(symbol: str):
-    """
-    Fallback: Get ROE from Yahoo Finance key statistics page using BeautifulSoup.
-    """
-    max_retries = 3
-    retry_delay = 2  # seconds
-    
-    for attempt in range(max_retries):
-        try:
-            # Scrape the key statistics page
-            url = f'https://finance.yahoo.com/quote/{symbol}/key-statistics'
-            
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Referer': 'https://finance.yahoo.com/',
-                'Connection': 'keep-alive',
-            }
-            
-            response = requests.get(url, headers=headers, timeout=15)
-            
-            print(f"Yahoo Finance HTML response for {symbol}: Status {response.status_code} (attempt {attempt + 1}/{max_retries})")
-            
-            # Handle rate limiting with retry
-            if response.status_code == 429:
-                wait_time = retry_delay * (attempt + 1)  # Exponential backoff
-                print(f"Yahoo Finance rate limited (429). Waiting {wait_time}s before retry...")
-                if attempt < max_retries - 1:
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    print(f"Yahoo Finance rate limit exceeded after {max_retries} attempts")
-                    raise HTTPException(
-                        status_code=503, 
-                        detail='Yahoo Finance rate limit exceeded. Please try again in a few minutes.'
-                    )
-            
-            # Handle other HTTP errors
-            if response.status_code != 200:
-                print(f"Yahoo Finance error: Status {response.status_code}")
-                if response.status_code >= 500 and attempt < max_retries - 1:
-                    wait_time = retry_delay * (attempt + 1)
-                    print(f"Server error. Waiting {wait_time}s before retry...")
-                    time.sleep(wait_time)
-                    continue
-                raise HTTPException(
-                    status_code=500,
-                    detail=f'Yahoo Finance error: {response.status_code}'
-                )
-            
-            # Parse HTML
-            soup = BeautifulSoup(response.text, 'lxml')
-            
-            # Find ROE - Yahoo Finance uses various structures
-            # Method 1: Look for "Return on Equity" text in spans/divs
-            roe_value = None
-            
-            # Try finding by text content
-            roe_elements = soup.find_all(string=re.compile(r'Return on Equity', re.I))
-            
-            for roe_text in roe_elements:
-                # Find the parent element
-                parent = roe_text.find_parent()
-                if parent:
-                    # Look for the value in the same row/container
-                    # Yahoo Finance often uses <td> or <span> with data-test attributes
-                    row = parent.find_parent('tr') or parent.find_parent('div')
-                    if row:
-                        # Find value cell - usually next sibling or specific data-test attribute
-                        value_cell = (
-                            row.find('td', {'data-test': re.compile(r'fin-col|value', re.I)}) or
-                            row.find('span', {'data-test': re.compile(r'fin-col|value', re.I)}) or
-                            row.find_all('td')[1] if len(row.find_all('td')) > 1 else None
-                        )
-                        
-                        if value_cell:
-                            value_text = value_cell.get_text(strip=True)
-                            # Extract percentage (e.g., "107.36%")
-                            match = re.search(r'([\d,]+\.?\d*)%', value_text)
-                            if match:
-                                roe_value = float(match.group(1).replace(',', ''))
-                                print(f"✅ Found ROE via text search: {roe_value}%")
-                                break
-            
-            # Method 2: Search in all table cells for "Return on Equity"
-            if roe_value is None:
-                for cell in soup.find_all(['td', 'span', 'div']):
-                    cell_text = cell.get_text(strip=True)
-                    if 'Return on Equity' in cell_text or 'ROE' in cell_text:
-                        # Get the value - could be in next sibling, parent's next child, or data attribute
-                        parent = cell.find_parent()
-                        if parent:
-                            # Try to find value in same container
-                            siblings = parent.find_all(['td', 'span', 'div'])
-                            for sibling in siblings:
-                                sibling_text = sibling.get_text(strip=True)
-                                # Check if this looks like a percentage value
-                                if re.match(r'^[\d,]+\.?\d*%$', sibling_text):
-                                    match = re.search(r'([\d,]+\.?\d*)%', sibling_text)
-                                    if match:
-                                        roe_value = float(match.group(1).replace(',', ''))
-                                        print(f"✅ Found ROE via sibling search: {roe_value}%")
-                                        break
-                        if roe_value:
-                            break
-            
-            # Method 3: Look for data-reactid or specific Yahoo Finance attributes
-            if roe_value is None:
-                # Yahoo Finance sometimes uses specific data attributes
-                for element in soup.find_all(attrs={'data-test': True}):
-                    text = element.get_text(strip=True)
-                    if 'Return on Equity' in text or ('ROE' in text and '%' in text):
-                        # Try to find the value nearby
-                        parent = element.find_parent()
-                        if parent:
-                            value_elem = parent.find(string=re.compile(r'[\d,]+\.?\d*%'))
-                            if value_elem:
-                                match = re.search(r'([\d,]+\.?\d*)%', value_elem)
-                                if match:
-                                    roe_value = float(match.group(1).replace(',', ''))
-                                    print(f"✅ Found ROE via data attribute: {roe_value}%")
-                                    break
-            
-            if roe_value is not None:
-                print(f"✅ Successfully extracted ROE: {roe_value}%")
-                return {'symbol': symbol, 'roe': roe_value}
-            else:
-                # Log for debugging
-                print(f"⚠️ ROE not found in HTML. Page title: {soup.title.string if soup.title else 'N/A'}")
-                # Try fallback to JSON API if HTML parsing fails
-                print(f"🔄 Attempting fallback to JSON API...")
-                try:
-                    json_url = f'https://query1.finance.yahoo.com/v10/finance/quoteSummary/{symbol}'
-                    json_params = {'modules': 'keyStatistics,financialData'}
-                    json_headers = {
-                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-                        'Accept': 'application/json',
-                        'Referer': 'https://finance.yahoo.com/',
-                    }
-                    json_response = requests.get(json_url, params=json_params, headers=json_headers, timeout=10)
-                    if json_response.status_code == 200:
-                        json_data = json_response.json()
-                        quote_summary = json_data.get('quoteSummary', {})
-                        result = quote_summary.get('result', [])
-                        if result:
-                            key_stats = result[0].get('keyStatistics', {})
-                            roe_data = key_stats.get('returnOnEquity', {})
-                            roe_raw = roe_data.get('raw')
-                            if roe_raw is None:
-                                financial_data = result[0].get('financialData', {})
-                                roe_data = financial_data.get('returnOnEquity', {})
-                                roe_raw = roe_data.get('raw')
-                            if roe_raw is not None:
-                                roe_percentage = roe_raw * 100
-                                print(f"✅ Found ROE via JSON API fallback: {roe_percentage}%")
-                                return {'symbol': symbol, 'roe': roe_percentage}
-                except Exception as json_error:
-                    print(f"⚠️ JSON API fallback also failed: {str(json_error)}")
-                
-                # If both methods fail, raise 404
-                raise HTTPException(status_code=404, detail=f'ROE not found on Yahoo Finance for {symbol}')
-                
-        except HTTPException:
-            raise
-        except requests.exceptions.Timeout:
-            print(f"⏱️ Request timeout (attempt {attempt + 1}/{max_retries})")
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                continue
-            raise HTTPException(status_code=504, detail='Yahoo Finance request timeout')
-        except requests.exceptions.RequestException as e:
-            print(f"🌐 Network error: {str(e)} (attempt {attempt + 1}/{max_retries})")
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                continue
-            raise HTTPException(status_code=500, detail=f'Network error: {str(e)}')
-        except Exception as e:
-            import traceback
-            print(f"❌ Error parsing HTML: {str(e)}")
-            print(f"Traceback: {traceback.format_exc()}")
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                continue
-            raise HTTPException(status_code=500, detail=f'Error scraping ROE: {str(e)}')
-    
-    raise HTTPException(status_code=500, detail='Failed to fetch ROE after retries')

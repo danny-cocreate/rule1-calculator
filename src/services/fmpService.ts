@@ -169,7 +169,7 @@ const mapResponseToFundamentals = (
   const peValue = peFields.find(v => v !== undefined && v !== null);
   fundamentals.peRatio = normalizeRatio(peValue);
 
-  // ROE: Always fetch from backend (SEC EDGAR primary, Yahoo Finance fallback)
+  // ROE: Always fetch from backend (SEC EDGAR only)
   // Set to null initially, will be fetched from backend in fetchFundamentals
   fundamentals.roe = null;
 
@@ -536,19 +536,19 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
       metricsData
     );
 
-    // Always fetch ROE from backend (SEC EDGAR primary, Yahoo Finance fallback)
+    // Always fetch ROE from backend (SEC EDGAR only)
     console.log('FMP: Fetching ROE from backend (SEC EDGAR)...');
     try {
       const backendUrl = import.meta.env.VITE_SCUTTLEBUTT_API_URL || 'http://localhost:8000';
-      const yahooRoeResponse = await axios.get(`${backendUrl}/fisher-research/yahoo-roe/${symbol}`, {
+      const roeResponse = await axios.get(`${backendUrl}/fisher-research/roe/${symbol}`, {
         timeout: 10000
       });
       
-      if (yahooRoeResponse.data && yahooRoeResponse.data.roe) {
-        const yahooROE = yahooRoeResponse.data.roe;
-        fundamentals.roe = yahooROE;
-        const source = yahooRoeResponse.data.source || 'backend';
-        console.log(`FMP: ✅ ROE from ${source.toUpperCase()}:`, yahooROE.toFixed(2), '%');
+      if (roeResponse.data && roeResponse.data.roe) {
+        const roe = roeResponse.data.roe;
+        fundamentals.roe = roe;
+        const source = roeResponse.data.source || 'sec';
+        console.log(`FMP: ✅ ROE from ${source.toUpperCase()}:`, roe.toFixed(2), '%');
       } else {
         console.warn('FMP: ROE not available from backend');
       }
