@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
 
-from routes import fisher
+from backend.routes import fisher
 
 # Load environment variables
 load_dotenv()

@@ -14,8 +14,8 @@ import re
 import json
 from bs4 import BeautifulSoup
 
-from services.scuttlebutt import research_company
-from services.sec_edgar import get_sec_roe
+from backend.services.scuttlebutt import research_company
+from backend.services.sec_edgar import get_sec_roe
 
 router = APIRouter(prefix='/fisher-research', tags=['fisher'])
 
