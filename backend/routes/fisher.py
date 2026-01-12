@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 import requests
+import yfinance as yf
 
 from services.scuttlebutt import research_company
 
@@ -72,54 +73,30 @@ async def research_fisher_criteria(request: FisherResearchRequest):
 @router.get('/yahoo-roe/{symbol}')
 async def get_yahoo_roe(symbol: str):
     """
-    Get ROE from Yahoo Finance JSON API.
+    Get ROE from Yahoo Finance using yfinance library.
     Falls back to Yahoo Finance when FMP data is incorrect.
     """
     try:
-        url = f'https://query1.finance.yahoo.com/v10/finance/quoteSummary/{symbol}'
-        params = {'modules': 'keyStatistics,financialData'}
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'application/json',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Referer': 'https://finance.yahoo.com/',
-            'Origin': 'https://finance.yahoo.com',
-            'Connection': 'keep-alive',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-site'
-        }
+        # Use yfinance library which handles headers, cookies, and rate limiting automatically
+        ticker = yf.Ticker(symbol)
+        info = ticker.info
         
-        response = requests.get(url, params=params, headers=headers, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        
-        # Extract ROE from keyStatistics
-        quote_summary = data.get('quoteSummary', {})
-        result = quote_summary.get('result', [])
-        
-        if not result:
-            raise HTTPException(status_code=404, detail=f'No data found for symbol {symbol}')
-        
-        key_stats = result[0].get('keyStatistics', {})
-        roe_data = key_stats.get('returnOnEquity', {})
-        roe_raw = roe_data.get('raw')
-        
-        if roe_raw is None:
-            # Try financialData as fallback
-            financial_data = result[0].get('financialData', {})
-            roe_data = financial_data.get('returnOnEquity', {})
-            roe_raw = roe_data.get('raw')
+        # Try multiple field names for ROE
+        roe_raw = (
+            info.get('returnOnEquity') or
+            info.get('roe') or
+            info.get('returnOnEquityTTM')
+        )
         
         if roe_raw is not None:
-            # Convert to percentage (Yahoo returns as decimal, e.g., 1.0736 = 107.36%)
+            # yfinance returns ROE as a decimal (e.g., 1.0736 = 107.36%)
+            # Convert to percentage
             roe_percentage = roe_raw * 100
             return {'symbol': symbol, 'roe': roe_percentage}
         else:
-            raise HTTPException(status_code=404, detail='ROE not found in Yahoo Finance data')
+            raise HTTPException(status_code=404, detail=f'ROE not found for symbol {symbol}')
             
-    except requests.exceptions.RequestException as e:
-        raise HTTPException(status_code=500, detail=f'Failed to fetch ROE from Yahoo Finance: {str(e)}')
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f'Error processing Yahoo Finance data: {str(e)}')
+        raise HTTPException(status_code=500, detail=f'Error fetching ROE from Yahoo Finance: {str(e)}')
