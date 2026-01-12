@@ -11,6 +11,7 @@ from datetime import datetime
 import requests
 import time
 import re
+import json
 from bs4 import BeautifulSoup
 
 from services.scuttlebutt import research_company
@@ -200,26 +201,62 @@ async def get_yahoo_roe(symbol: str):
                                     break
             
             if roe_value is not None:
+                print(f"✅ Successfully extracted ROE: {roe_value}%")
                 return {'symbol': symbol, 'roe': roe_value}
             else:
                 # Log for debugging
-                print(f"⚠️ ROE not found. Page title: {soup.title.string if soup.title else 'N/A'}")
-                raise HTTPException(status_code=404, detail=f'ROE not found on Yahoo Finance page for {symbol}')
+                print(f"⚠️ ROE not found in HTML. Page title: {soup.title.string if soup.title else 'N/A'}")
+                # Try fallback to JSON API if HTML parsing fails
+                print(f"🔄 Attempting fallback to JSON API...")
+                try:
+                    json_url = f'https://query1.finance.yahoo.com/v10/finance/quoteSummary/{symbol}'
+                    json_params = {'modules': 'keyStatistics,financialData'}
+                    json_headers = {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                        'Accept': 'application/json',
+                        'Referer': 'https://finance.yahoo.com/',
+                    }
+                    json_response = requests.get(json_url, params=json_params, headers=json_headers, timeout=10)
+                    if json_response.status_code == 200:
+                        json_data = json_response.json()
+                        quote_summary = json_data.get('quoteSummary', {})
+                        result = quote_summary.get('result', [])
+                        if result:
+                            key_stats = result[0].get('keyStatistics', {})
+                            roe_data = key_stats.get('returnOnEquity', {})
+                            roe_raw = roe_data.get('raw')
+                            if roe_raw is None:
+                                financial_data = result[0].get('financialData', {})
+                                roe_data = financial_data.get('returnOnEquity', {})
+                                roe_raw = roe_data.get('raw')
+                            if roe_raw is not None:
+                                roe_percentage = roe_raw * 100
+                                print(f"✅ Found ROE via JSON API fallback: {roe_percentage}%")
+                                return {'symbol': symbol, 'roe': roe_percentage}
+                except Exception as json_error:
+                    print(f"⚠️ JSON API fallback also failed: {str(json_error)}")
+                
+                # If both methods fail, raise 404
+                raise HTTPException(status_code=404, detail=f'ROE not found on Yahoo Finance for {symbol}')
                 
         except HTTPException:
             raise
         except requests.exceptions.Timeout:
+            print(f"⏱️ Request timeout (attempt {attempt + 1}/{max_retries})")
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
                 continue
             raise HTTPException(status_code=504, detail='Yahoo Finance request timeout')
         except requests.exceptions.RequestException as e:
+            print(f"🌐 Network error: {str(e)} (attempt {attempt + 1}/{max_retries})")
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
                 continue
             raise HTTPException(status_code=500, detail=f'Network error: {str(e)}')
         except Exception as e:
-            print(f"Error parsing HTML: {str(e)}")
+            import traceback
+            print(f"❌ Error parsing HTML: {str(e)}")
+            print(f"Traceback: {traceback.format_exc()}")
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
                 continue
