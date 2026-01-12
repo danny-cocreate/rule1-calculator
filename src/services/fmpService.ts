@@ -10,7 +10,8 @@
 import axios from 'axios';
 
 const API_KEY = import.meta.env.VITE_FMP_API_KEY || '6HhHKgYFoKOlDJqi4THx75eTc6w3N1xq';
-const BASE_URL = 'https://financialmodelingprep.com/api/v3';
+// Updated to use /stable/ endpoints (new API structure, replaces legacy /api/v3/)
+const BASE_URL = 'https://financialmodelingprep.com/stable';
 
 /**
  * Quote data from FMP API (price, volume, etc.)
@@ -247,8 +248,9 @@ export const fetchQuote = async (symbol: string): Promise<FMPQuote> => {
   }
 
   try {
-    const response = await axios.get(`${BASE_URL}/quote/${symbol}`, {
-      params: { apikey: API_KEY },
+    // New endpoint format: /stable/quote?symbol=AAPL&apikey=KEY (query params, not path params)
+    const response = await axios.get(`${BASE_URL}/quote`, {
+      params: { symbol: symbol, apikey: API_KEY },
       headers: { 'Accept': 'application/json' },
       timeout: 5000
     });
@@ -316,9 +318,10 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
     let profileData: any = null;
 
     // Try Key Metrics TTM first (most comprehensive single endpoint)
+    // New endpoint format: /stable/key-metrics-ttm?symbol=AAPL&apikey=KEY
     try {
-      const metricsResponse = await axios.get(`${BASE_URL}/key-metrics-ttm/${symbol}`, {
-        params: { apikey: API_KEY },
+      const metricsResponse = await axios.get(`${BASE_URL}/key-metrics-ttm`, {
+        params: { symbol: symbol, apikey: API_KEY },
         headers: { 'Accept': 'application/json' },
         timeout: 5000
       });
@@ -344,10 +347,11 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
     }
 
     // Try Ratios TTM as alternative/complement
+    // New endpoint format: /stable/ratios-ttm?symbol=AAPL&apikey=KEY
     if (!metricsData || !metricsData.roe || !metricsData.currentRatio) {
       try {
-        const ratiosResponse = await axios.get(`${BASE_URL}/ratios-ttm/${symbol}`, {
-          params: { apikey: API_KEY },
+        const ratiosResponse = await axios.get(`${BASE_URL}/ratios-ttm`, {
+          params: { symbol: symbol, apikey: API_KEY },
           headers: { 'Accept': 'application/json' },
           timeout: 5000
         });
@@ -368,9 +372,10 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
     }
 
     // Try Income Statement Growth for growth rates
+    // New endpoint format: /stable/income-statement-growth?symbol=AAPL&apikey=KEY&limit=1
     try {
-      const growthResponse = await axios.get(`${BASE_URL}/income-statement-growth/${symbol}`, {
-        params: { apikey: API_KEY, limit: 1 },
+      const growthResponse = await axios.get(`${BASE_URL}/income-statement-growth`, {
+        params: { symbol: symbol, apikey: API_KEY, limit: 1 },
         headers: { 'Accept': 'application/json' },
         timeout: 5000
       });
@@ -390,10 +395,11 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
     }
 
     // Fallback: Try Profile endpoint if we're missing basic data
+    // New endpoint format: /stable/profile?symbol=AAPL&apikey=KEY
     if (!metricsData || (!metricsData.eps && !metricsData.peRatio)) {
       try {
-        const profileResponse = await axios.get(`${BASE_URL}/profile/${symbol}`, {
-          params: { apikey: API_KEY },
+        const profileResponse = await axios.get(`${BASE_URL}/profile`, {
+          params: { symbol: symbol, apikey: API_KEY },
           headers: { 'Accept': 'application/json' },
           timeout: 5000
         });
