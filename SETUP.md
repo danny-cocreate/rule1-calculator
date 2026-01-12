@@ -19,7 +19,8 @@ This will install all required packages including:
 Create a `.env` file in the project root:
 
 ```env
-VITE_ALPHA_VANTAGE_API_KEY=LH82CXE5Y5HTVXA4
+VITE_STOCKDATA_API_KEY=your_stockdata_api_key_here
+VITE_FMP_API_KEY=your_fmp_api_key_here
 VITE_GEMINI_API_KEY=AIzaSyBhZ0zrHFX5VMEvwvxT2uDjqun0ne-O7-Q
 ```
 
@@ -46,7 +47,7 @@ The app will be available at `http://localhost:5173`
 
 ### Philip Fisher's 15-Point Analysis (NEW! 🎉)
 - **AI-Powered Research** - Uses Google Gemini to research qualitative criteria
-- **Automated Calculations** - Alpha Vantage data for quantitative metrics
+- **Automated Calculations** - StockData.org data for quantitative metrics
 - **15 Investment Criteria** - Complete "Scuttlebutt" methodology
 - **Detailed Justifications** - Explanations for each rating
 - **Overall Quality Score** - Aggregate 1-5 rating
@@ -55,10 +56,17 @@ The app will be available at `http://localhost:5173`
 
 ## 🔑 API Information
 
-### Alpha Vantage (Free Tier)
-- **Rate Limits:** 5 requests/minute, 25 requests/day
-- **Usage:** 2 requests per stock search (Overview + Quote)
-- **Get Your Key:** https://www.alphavantage.co/support/#api-key
+### StockData.org (Free Tier)
+- **Rate Limits:** 100 requests/day
+- **Usage:** 1 request per stock search (Price data only)
+- **Get Your Key:** https://www.stockdata.org (Sign up for free account)
+- **Purpose:** Real-time stock price data
+
+### Financial Modeling Prep (FMP) (Free Tier)
+- **Rate Limits:** 250 requests/day
+- **Usage:** 1-2 requests per stock search (Key Metrics + Growth data)
+- **Get Your Key:** https://site.financialmodelingprep.com/developer/docs/ (Sign up for free account)
+- **Purpose:** Financial fundamentals (EPS, PE, ROE, growth rates, ratios)
 
 ### Google Gemini AI (Free Tier)
 - **Rate Limits:** 15 requests/minute, 1,500 requests/day
@@ -84,7 +92,8 @@ Try these stocks to see the features in action:
 - **Frontend:** React 18 + TypeScript
 - **Build Tool:** Vite
 - **APIs:** 
-  - Alpha Vantage (Financial Data)
+  - StockData.org (Price Data)
+  - Financial Modeling Prep (Fundamentals Data)
   - Google Gemini AI (Qualitative Analysis)
 - **Styling:** Custom CSS with responsive design
 
@@ -93,10 +102,10 @@ Try these stocks to see the features in action:
 ## 📊 How Fisher Analysis Works
 
 The app automatically:
-1. **Calculates 3 quantitative criteria** from Alpha Vantage data
-   - Market Potential (revenue growth)
-   - Profit Margins (ROE)
-   - Accounting Controls (debt ratios)
+1. **Calculates 3 quantitative criteria** from FMP and StockData.org data
+   - Market Potential (revenue growth from FMP)
+   - Profit Margins (ROE from FMP)
+   - Accounting Controls (debt ratios from FMP)
 
 2. **Researches 12 qualitative criteria** using Gemini AI
    - Management quality & determination
@@ -125,7 +134,8 @@ The app automatically:
 ## 🐛 Troubleshooting
 
 ### API Rate Limit Errors
-- **Alpha Vantage:** Wait 1 minute between searches or 24 hours if daily limit reached
+- **StockData.org:** Wait a few minutes between searches or try again tomorrow if daily limit reached (100 requests/day)
+- **FMP:** Wait a few minutes between searches or try again tomorrow if daily limit reached (250 requests/day)
 - **Gemini:** Very high limits, unlikely to hit on free tier
 
 ### Build Issues
@@ -147,7 +157,7 @@ npx tsc --noEmit
 
 - **Phil Town's Rule #1:** https://www.ruleoneinvesting.com/
 - **Philip Fisher's Scuttlebutt Method:** "Common Stocks and Uncommon Profits"
-- **Alpha Vantage Docs:** https://www.alphavantage.co/documentation/
+- **StockData.org Docs:** https://www.stockdata.org/documentation
 - **Gemini AI Docs:** https://ai.google.dev/docs
 
 ---

@@ -18,7 +18,7 @@ netlify init
 netlify deploy --prod
 
 # 5. Set API Keys
-netlify env:set VITE_ALPHA_VANTAGE_API_KEY LH82CXE5Y5HTVXA4
+netlify env:set VITE_STOCKDATA_API_KEY your_stockdata_api_key_here
 netlify env:set VITE_GEMINI_API_KEY AIzaSyBhZ0zrHFX5VMEvwvxT2uDjqun0ne-O7-Q
 
 # Done! Your site is live 🎉
@@ -66,7 +66,7 @@ npm run build
 - Check that all data displays correctly
 
 ✅ **Monitor API usage:**
-- Alpha Vantage: 25 requests/day limit
+- StockData.org: 100 requests/day limit
 - Gemini: Very high limits
 
 ✅ **Optional: Custom domain:**
@@ -78,7 +78,7 @@ npm run build
 ## 🔐 Production Checklist
 
 - [ ] Environment variables set (Netlify)
-- [ ] API keys restricted to domain (Google AI Studio, Alpha Vantage)
+- [ ] API keys restricted to domain (Google AI Studio, StockData.org if available)
 - [ ] HTTPS enabled (auto on both)
 - [ ] Test all features on live site
 - [ ] Monitor API quotas

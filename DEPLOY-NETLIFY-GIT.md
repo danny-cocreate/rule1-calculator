@@ -111,7 +111,7 @@ You'll be asked to authenticate. Use your GitHub username and a **Personal Acces
    
    | Key | Value |
    |-----|-------|
-   | `VITE_ALPHA_VANTAGE_API_KEY` | `LH82CXE5Y5HTVXA4` |
+   | `VITE_STOCKDATA_API_KEY` | `your_stockdata_api_key_here` |
    | `VITE_GEMINI_API_KEY` | `AIzaSyBhZ0zrHFX5VMEvwvxT2uDjqun0ne-O7-Q` |
 
 6. **Click "Deploy site"** 🎉

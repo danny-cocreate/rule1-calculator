@@ -10,7 +10,7 @@ export interface FisherCriterion {
   category: 'quantitative' | 'qualitative';
   rating: number | null; // 1-5 scale
   justification: string;
-  dataSource: 'alpha_vantage' | 'gemini' | 'manual';
+  dataSource: 'stockdata' | 'gemini' | 'manual';
   confidence: 'high' | 'medium' | 'low' | null;
   sources: string[];
   lastUpdated: Date | null;
@@ -56,7 +56,7 @@ export const FISHER_CRITERIA_TEMPLATE: Omit<FisherCriterion, 'rating' | 'justifi
     title: "Products/Services with Market Potential",
     description: "Does the company have products or services with sufficient market potential to make possible a sizable increase in sales for at least several years?",
     category: 'quantitative',
-    dataSource: 'alpha_vantage',
+    dataSource: 'stockdata',
     confidence: null,
   },
   {
@@ -88,7 +88,7 @@ export const FISHER_CRITERIA_TEMPLATE: Omit<FisherCriterion, 'rating' | 'justifi
     title: "Profit Margin",
     description: "Does the company have a worthwhile profit margin?",
     category: 'quantitative',
-    dataSource: 'alpha_vantage',
+    dataSource: 'stockdata',
     confidence: null,
   },
   {

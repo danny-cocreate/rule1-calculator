@@ -30,7 +30,8 @@ git push -u origin main
 6. Add environment variables:
    - Go to "Site settings" → "Environment variables"
    - Add:
-     - `VITE_ALPHA_VANTAGE_API_KEY` = `LH82CXE5Y5HTVXA4`
+     - `VITE_STOCKDATA_API_KEY` = `your_stockdata_api_key_here`
+     - `VITE_FMP_API_KEY` = `your_fmp_api_key_here`
      - `VITE_GEMINI_API_KEY` = `AIzaSyBhZ0zrHFX5VMEvwvxT2uDjqun0ne-O7-Q`
 
 7. Click "Deploy site"
@@ -67,7 +68,8 @@ netlify deploy --prod
 
 **4. Set environment variables:**
 ```bash
-netlify env:set VITE_ALPHA_VANTAGE_API_KEY LH82CXE5Y5HTVXA4
+netlify env:set VITE_STOCKDATA_API_KEY your_stockdata_api_key_here
+netlify env:set VITE_FMP_API_KEY your_fmp_api_key_here
 netlify env:set VITE_GEMINI_API_KEY AIzaSyBhZ0zrHFX5VMEvwvxT2uDjqun0ne-O7-Q
 ```
 
@@ -169,7 +171,7 @@ npm run build
 
 1. **API Keys in Frontend:**
    - Frontend apps expose API keys (unavoidable)
-   - Alpha Vantage & Gemini have rate limits (protection)
+   - StockData.org & Gemini have rate limits (protection)
    - For production, consider:
      - Domain restrictions (in API console)
      - Backend proxy for API calls
@@ -181,7 +183,8 @@ npm run build
 
 3. **Domain Restrictions:**
    - Configure in Google AI Studio (Gemini)
-   - Configure in Alpha Vantage dashboard
+   - Configure in StockData.org dashboard (if available)
+   - Configure in FMP dashboard (if available)
    - Restrict to your domain only
 
 ---
@@ -254,7 +257,8 @@ netlify init
 netlify deploy --prod
 
 # 4. Set env vars
-netlify env:set VITE_ALPHA_VANTAGE_API_KEY LH82CXE5Y5HTVXA4
+netlify env:set VITE_STOCKDATA_API_KEY your_stockdata_api_key_here
+netlify env:set VITE_FMP_API_KEY your_fmp_api_key_here
 netlify env:set VITE_GEMINI_API_KEY AIzaSyBhZ0zrHFX5VMEvwvxT2uDjqun0ne-O7-Q
 
 # Done! 🎉

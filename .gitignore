@@ -1,36 +1,65 @@
 # Dependencies
-node_modules
-package-lock.json
+node_modules/
+.pnp
+.pnp.js
 
-# Build output
-dist
-dist-ssr
-*.local
+# Testing
+coverage/
 
-# Environment variables
+# Production
+dist/
+build/
+
+# Misc
+.DS_Store
 .env
 .env.local
-.env.production
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+*.swp
+*.swo
+*~
 
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lsof.txt
+# Secrets and tokens
+GitHub-token.txt
 
-# Netlify
-.netlify
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+*.pyc
+
+# Temporary files
+.tmp/
+*.tmp
+
+# Backend
+backend/__pycache__/
+backend/.env
+
+# Execution outputs
+execution/__pycache__/

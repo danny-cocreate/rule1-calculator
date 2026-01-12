@@ -2,7 +2,7 @@ import { StockData } from '../types';
 import { FisherCriterion, FISHER_CRITERIA_TEMPLATE } from '../types/fisher';
 
 /**
- * Calculate Fisher criteria ratings from Alpha Vantage data
+ * Calculate Fisher criteria ratings from StockData.org data
  * These are the quantitative criteria that can be auto-calculated
  */
 export const calculateQuantitativeFisherCriteria = (stockData: StockData): Partial<FisherCriterion>[] => {
@@ -18,9 +18,9 @@ export const calculateQuantitativeFisherCriteria = (stockData: StockData): Parti
     category: 'quantitative',
     rating: marketPotentialRating.rating,
     justification: marketPotentialRating.justification,
-    dataSource: 'alpha_vantage',
+    dataSource: 'stockdata',
     confidence: 'high',
-    sources: ['Alpha Vantage API - Revenue Growth'],
+    sources: ['StockData.org API - Revenue Growth'],
     lastUpdated: new Date(),
   });
   
@@ -34,9 +34,9 @@ export const calculateQuantitativeFisherCriteria = (stockData: StockData): Parti
     category: 'quantitative',
     rating: profitMarginRating.rating,
     justification: profitMarginRating.justification,
-    dataSource: 'alpha_vantage',
+    dataSource: 'stockdata',
     confidence: 'high',
-    sources: ['Alpha Vantage API - ROE, Financial Ratios'],
+    sources: ['StockData.org API - ROE, Financial Ratios'],
     lastUpdated: new Date(),
   });
   

@@ -84,15 +84,18 @@ export const calculateMetrics = (
 
 /**
  * Calculate the default growth rate (LOWEST of available growth metrics)
+ * Throws error if no valid growth rates available
  */
 export const calculateDefaultGrowthRate = (stockData: StockData): number => {
   const rates = [stockData.epsGrowth, stockData.salesGrowth];
-  if (stockData.bookValueGrowth !== null) {
+  if (stockData.bookValueGrowth !== null && stockData.bookValueGrowth !== undefined) {
     rates.push(stockData.bookValueGrowth);
   }
   
-  const validRates = rates.filter(rate => rate > 0);
-  if (validRates.length === 0) return 8.0; // Default fallback
+  const validRates = rates.filter(rate => rate !== null && rate !== undefined && rate > 0);
+  if (validRates.length === 0) {
+    throw new Error('No valid growth rate data available. Growth rates are required for calculations.');
+  }
   
   // Return the minimum (most conservative) growth rate
   return Math.min(...validRates);

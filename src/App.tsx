@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { SearchBar } from './components/SearchBar';
 import { StockResults } from './components/StockResults';
 import { FisherScorecard } from './components/FisherScorecard';
-import { fetchStockData } from './services/alphaVantageService';
+import { fetchStockData } from './services/stockDataService';
 import { StockData } from './types';
 import './App.css';
 
@@ -77,8 +77,8 @@ function App() {
             {error.includes('rate limit') && (
               <div style={{ marginTop: '16px', padding: '16px', background: '#fff7ed', borderRadius: '8px', width: '100%' }}>
                 <p style={{ margin: 0, fontSize: '14px', color: '#9a3412' }}>
-                  💡 <strong>Tip:</strong> Alpha Vantage free tier allows 5 requests per minute and 25 per day. 
-                  Each stock search uses 2 requests. Try again in a few minutes or tomorrow!
+                  💡 <strong>Tip:</strong> StockData.org free tier allows 100 requests per day. 
+                  Try again in a few minutes or tomorrow!
                 </p>
               </div>
             )}

@@ -16,7 +16,9 @@ A modern web application for analyzing stocks using Phil Town's Rule #1 investin
 
 - **Frontend**: React 18 + TypeScript
 - **Build Tool**: Vite
-- **API**: Alpha Vantage (financial data)
+- **APIs**: 
+  - StockData.org (price data)
+  - Financial Modeling Prep (fundamentals data)
 - **Styling**: CSS3 with modern gradients and animations
 
 ## Getting Started
@@ -81,14 +83,24 @@ MOS Price = Sticker Price × 0.5
 4. Adjust the custom growth rate slider to see how different assumptions affect the valuation
 5. Compare current price against sticker price and MOS price
 
-## API Key
+## API Keys
 
-This application uses Alpha Vantage API. The API key is configured in `src/services/alphaVantageService.ts`.
+This application uses multiple APIs. API keys are configured via environment variables.
+
+### StockData.org (Price Data)
+1. Sign up at https://www.stockdata.org
+2. Get your free API key (100 requests/day)
+3. Add to `.env` as `VITE_STOCKDATA_API_KEY=your_api_key_here`
+
+### Financial Modeling Prep (Fundamentals Data)
+1. Sign up at https://site.financialmodelingprep.com/developer/docs/
+2. Get your free API key (250 requests/day)
+3. Add to `.env` as `VITE_FMP_API_KEY=your_api_key_here`
 
 For production use, consider:
-- Moving the API key to environment variables
+- Using environment variables for API keys
 - Implementing rate limiting
-- Using a premium API tier for higher request limits
+- Upgrading to premium tiers for higher request limits if needed
 
 ## License
 
@@ -97,5 +109,5 @@ MIT
 ## Acknowledgments
 
 - Phil Town for the Rule #1 investing methodology
-- Alpha Vantage for providing financial data API
+- StockData.org for providing financial data API
 

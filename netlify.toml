@@ -11,8 +11,10 @@
   publish = "dist"
 
 # Environment variables (set these in Netlify dashboard)
-# VITE_ALPHA_VANTAGE_API_KEY
-# VITE_GEMINI_API_KEY
+# VITE_STOCKDATA_API_KEY
+# VITE_FMP_API_KEY
+# VITE_SCUTTLEBUTT_API_URL (for Scuttlebutt backend - set to your VPS API URL)
+# VITE_GEMINI_API_KEY (legacy - not used with Scuttlebutt)
 
 # Redirect rules for SPA (single-page app)
 [[redirects]]

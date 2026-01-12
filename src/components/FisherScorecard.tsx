@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StockData } from '../types';
 import { FisherCriterion, FisherScorecard as FisherScorecardType, FISHER_CRITERIA_TEMPLATE } from '../types/fisher';
-import { getCachedOrFetchFisherData } from '../services/geminiService';
+import { getCachedOrFetchFisherData } from '../services/scuttlebuttService';
 import { 
   calculateQuantitativeFisherCriteria, 
   calculateOverallFisherScore,
@@ -30,7 +30,7 @@ export const FisherScorecard: React.FC<FisherScorecardProps> = ({ stockData, onS
     setError(null);
 
     try {
-      // Step 1: Calculate quantitative criteria from Alpha Vantage data
+      // Step 1: Calculate quantitative criteria from StockData.org data
       const quantitativeCriteria = calculateQuantitativeFisherCriteria(stockData);
       
       // Step 2: Get qualitative criteria IDs that need Gemini research
@@ -38,8 +38,8 @@ export const FisherScorecard: React.FC<FisherScorecardProps> = ({ stockData, onS
         .filter(c => c.dataSource === 'gemini')
         .map(c => c.id);
       
-      // Step 3: Research qualitative criteria with Gemini
-      console.log('Fetching Gemini research for', stockData.symbol);
+      // Step 3: Research qualitative criteria with Scuttlebutt (Tavily + Ollama)
+      console.log('Fetching Scuttlebutt research for', stockData.symbol);
       const geminiResponse = await getCachedOrFetchFisherData({
         symbol: stockData.symbol,
         companyName: stockData.companyName,
@@ -201,7 +201,7 @@ export const FisherScorecard: React.FC<FisherScorecardProps> = ({ stockData, onS
                       {criterion.dataSource === 'gemini' && (
                         <span className="ai-badge">🤖 AI</span>
                       )}
-                      {criterion.dataSource === 'alpha_vantage' && (
+                      {criterion.dataSource === 'stockdata' && (
                         <span className="auto-badge">📊 AUTO</span>
                       )}
                       {criterion.confidence && (
