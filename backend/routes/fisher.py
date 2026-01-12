@@ -10,6 +10,8 @@ from typing import List, Optional
 from datetime import datetime
 import requests
 import time
+import re
+from bs4 import BeautifulSoup
 
 from services.scuttlebutt import research_company
 
@@ -73,41 +75,29 @@ async def research_fisher_criteria(request: FisherResearchRequest):
 @router.get('/yahoo-roe/{symbol}')
 async def get_yahoo_roe(symbol: str):
     """
-    Get ROE from Yahoo Finance JSON API directly.
-    Falls back to Yahoo Finance when FMP data is incorrect.
+    Get ROE from Yahoo Finance key statistics page using BeautifulSoup.
+    More reliable than JSON API which has strict rate limits.
     """
     max_retries = 3
     retry_delay = 2  # seconds
-    initial_delay = 1  # seconds - small delay before first request to avoid immediate rate limits
-    
-    # Small initial delay to avoid hitting rate limits immediately
-    if max_retries > 0:
-        time.sleep(initial_delay)
     
     for attempt in range(max_retries):
         try:
-            # Use the same endpoint that yfinance uses
-            url = f'https://query1.finance.yahoo.com/v10/finance/quoteSummary/{symbol}'
-            params = {'modules': 'keyStatistics,financialData'}
+            # Scrape the key statistics page
+            url = f'https://finance.yahoo.com/quote/{symbol}/key-statistics'
             
-            # Comprehensive browser headers to avoid 401/403
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'application/json',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Accept-Encoding': 'gzip, deflate, br',
                 'Referer': 'https://finance.yahoo.com/',
-                'Origin': 'https://finance.yahoo.com',
                 'Connection': 'keep-alive',
-                'Sec-Fetch-Dest': 'empty',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-site'
             }
             
-            response = requests.get(url, params=params, headers=headers, timeout=10)
+            response = requests.get(url, headers=headers, timeout=15)
             
-            # Log response for debugging
-            print(f"Yahoo Finance API response for {symbol}: Status {response.status_code} (attempt {attempt + 1}/{max_retries})")
+            print(f"Yahoo Finance HTML response for {symbol}: Status {response.status_code} (attempt {attempt + 1}/{max_retries})")
             
             # Handle rate limiting with retry
             if response.status_code == 429:
@@ -120,58 +110,101 @@ async def get_yahoo_roe(symbol: str):
                     print(f"Yahoo Finance rate limit exceeded after {max_retries} attempts")
                     raise HTTPException(
                         status_code=503, 
-                        detail=f'Yahoo Finance rate limit exceeded. Please try again in a few minutes.'
+                        detail='Yahoo Finance rate limit exceeded. Please try again in a few minutes.'
                     )
             
-            # Handle auth errors
-            if response.status_code == 401 or response.status_code == 403:
-                print(f"Yahoo Finance API access denied: {response.status_code}")
-                raise HTTPException(
-                    status_code=500,
-                    detail=f'Yahoo Finance API access denied. Status: {response.status_code}'
-                )
-            
-            # Handle other errors
+            # Handle other HTTP errors
             if response.status_code != 200:
-                print(f"Yahoo Finance API error: Status {response.status_code}, Response: {response.text[:200]}")
-                # For 5xx errors, retry
+                print(f"Yahoo Finance error: Status {response.status_code}")
                 if response.status_code >= 500 and attempt < max_retries - 1:
                     wait_time = retry_delay * (attempt + 1)
-                    print(f"Yahoo Finance server error. Waiting {wait_time}s before retry...")
+                    print(f"Server error. Waiting {wait_time}s before retry...")
                     time.sleep(wait_time)
                     continue
                 raise HTTPException(
                     status_code=500,
-                    detail=f'Yahoo Finance API error. Status: {response.status_code}'
+                    detail=f'Yahoo Finance error: {response.status_code}'
                 )
             
-            data = response.json()
+            # Parse HTML
+            soup = BeautifulSoup(response.text, 'lxml')
             
-            # Extract ROE from keyStatistics
-            quote_summary = data.get('quoteSummary', {})
-            result = quote_summary.get('result', [])
+            # Find ROE - Yahoo Finance uses various structures
+            # Method 1: Look for "Return on Equity" text in spans/divs
+            roe_value = None
             
-            if not result:
-                raise HTTPException(status_code=404, detail=f'No data found for symbol {symbol}')
+            # Try finding by text content
+            roe_elements = soup.find_all(string=re.compile(r'Return on Equity', re.I))
             
-            key_stats = result[0].get('keyStatistics', {})
-            financial_data = result[0].get('financialData', {})
+            for roe_text in roe_elements:
+                # Find the parent element
+                parent = roe_text.find_parent()
+                if parent:
+                    # Look for the value in the same row/container
+                    # Yahoo Finance often uses <td> or <span> with data-test attributes
+                    row = parent.find_parent('tr') or parent.find_parent('div')
+                    if row:
+                        # Find value cell - usually next sibling or specific data-test attribute
+                        value_cell = (
+                            row.find('td', {'data-test': re.compile(r'fin-col|value', re.I)}) or
+                            row.find('span', {'data-test': re.compile(r'fin-col|value', re.I)}) or
+                            row.find_all('td')[1] if len(row.find_all('td')) > 1 else None
+                        )
+                        
+                        if value_cell:
+                            value_text = value_cell.get_text(strip=True)
+                            # Extract percentage (e.g., "107.36%")
+                            match = re.search(r'([\d,]+\.?\d*)%', value_text)
+                            if match:
+                                roe_value = float(match.group(1).replace(',', ''))
+                                print(f"✅ Found ROE via text search: {roe_value}%")
+                                break
             
-            # Try keyStatistics first
-            roe_data = key_stats.get('returnOnEquity', {})
-            roe_raw = roe_data.get('raw')
+            # Method 2: Search in all table cells for "Return on Equity"
+            if roe_value is None:
+                for cell in soup.find_all(['td', 'span', 'div']):
+                    cell_text = cell.get_text(strip=True)
+                    if 'Return on Equity' in cell_text or 'ROE' in cell_text:
+                        # Get the value - could be in next sibling, parent's next child, or data attribute
+                        parent = cell.find_parent()
+                        if parent:
+                            # Try to find value in same container
+                            siblings = parent.find_all(['td', 'span', 'div'])
+                            for sibling in siblings:
+                                sibling_text = sibling.get_text(strip=True)
+                                # Check if this looks like a percentage value
+                                if re.match(r'^[\d,]+\.?\d*%$', sibling_text):
+                                    match = re.search(r'([\d,]+\.?\d*)%', sibling_text)
+                                    if match:
+                                        roe_value = float(match.group(1).replace(',', ''))
+                                        print(f"✅ Found ROE via sibling search: {roe_value}%")
+                                        break
+                        if roe_value:
+                            break
             
-            # Fallback to financialData
-            if roe_raw is None:
-                roe_data = financial_data.get('returnOnEquity', {})
-                roe_raw = roe_data.get('raw')
+            # Method 3: Look for data-reactid or specific Yahoo Finance attributes
+            if roe_value is None:
+                # Yahoo Finance sometimes uses specific data attributes
+                for element in soup.find_all(attrs={'data-test': True}):
+                    text = element.get_text(strip=True)
+                    if 'Return on Equity' in text or ('ROE' in text and '%' in text):
+                        # Try to find the value nearby
+                        parent = element.find_parent()
+                        if parent:
+                            value_elem = parent.find(string=re.compile(r'[\d,]+\.?\d*%'))
+                            if value_elem:
+                                match = re.search(r'([\d,]+\.?\d*)%', value_elem)
+                                if match:
+                                    roe_value = float(match.group(1).replace(',', ''))
+                                    print(f"✅ Found ROE via data attribute: {roe_value}%")
+                                    break
             
-            if roe_raw is not None:
-                # Convert to percentage (Yahoo returns as decimal, e.g., 1.0736 = 107.36%)
-                roe_percentage = roe_raw * 100
-                return {'symbol': symbol, 'roe': roe_percentage}
+            if roe_value is not None:
+                return {'symbol': symbol, 'roe': roe_value}
             else:
-                raise HTTPException(status_code=404, detail=f'ROE not found for symbol {symbol}')
+                # Log for debugging
+                print(f"⚠️ ROE not found. Page title: {soup.title.string if soup.title else 'N/A'}")
+                raise HTTPException(status_code=404, detail=f'ROE not found on Yahoo Finance page for {symbol}')
                 
         except HTTPException:
             raise
@@ -179,14 +212,17 @@ async def get_yahoo_roe(symbol: str):
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
                 continue
-            raise HTTPException(status_code=504, detail='Yahoo Finance API timeout')
+            raise HTTPException(status_code=504, detail='Yahoo Finance request timeout')
         except requests.exceptions.RequestException as e:
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
                 continue
             raise HTTPException(status_code=500, detail=f'Network error: {str(e)}')
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f'Error fetching ROE: {str(e)}')
+            print(f"Error parsing HTML: {str(e)}")
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                continue
+            raise HTTPException(status_code=500, detail=f'Error scraping ROE: {str(e)}')
     
-    # Should never reach here, but just in case
     raise HTTPException(status_code=500, detail='Failed to fetch ROE after retries')
