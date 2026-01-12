@@ -516,7 +516,8 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
             if (currentEPS && previousEPS && previousEPS !== 0) {
               const epsGrowth = ((currentEPS - previousEPS) / Math.abs(previousEPS)) * 100;
               if (!growthData) growthData = {};
-              growthData.growthEPS = epsGrowth / 100; // Store as decimal for normalizeGrowth
+              // Store as percentage (already multiplied by 100), normalizeGrowth will detect it's > 1
+              growthData.growthEPS = epsGrowth;
               console.log('FMP: ✅ Calculated EPS Growth from income statements:', epsGrowth.toFixed(2), '%');
             } else {
               console.warn('FMP: Could not calculate EPS Growth - Current EPS:', currentEPS, 'Previous EPS:', previousEPS);
@@ -525,7 +526,8 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
             if (currentRevenue && previousRevenue && previousRevenue !== 0) {
               const revenueGrowth = ((currentRevenue - previousRevenue) / Math.abs(previousRevenue)) * 100;
               if (!growthData) growthData = {};
-              growthData.growthRevenue = revenueGrowth / 100; // Store as decimal for normalizeGrowth
+              // Store as percentage (already multiplied by 100), normalizeGrowth will detect it's > 1
+              growthData.growthRevenue = revenueGrowth;
               console.log('FMP: ✅ Calculated Revenue Growth from income statements:', revenueGrowth.toFixed(2), '%');
             } else {
               console.warn('FMP: Could not calculate Revenue Growth - Current Revenue:', currentRevenue, 'Previous Revenue:', previousRevenue);
