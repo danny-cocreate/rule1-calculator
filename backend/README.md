@@ -14,6 +14,11 @@ OPENROUTER_MODEL=openai/gpt-4o-mini  # Default: cheap and good
 # OLLAMA_BASE_URL=http://localhost:11434
 # OLLAMA_MODEL=llama3.2
 
+# SEC EDGAR API (for ROE calculation)
+# SEC requires a User-Agent header with contact info
+# Format: "YourAppName your@email.com"
+SEC_USER_AGENT=Rule1Calculator your@email.com
+
 # Optional: Backend settings
 # PORT=8000
 # HOST=0.0.0.0
