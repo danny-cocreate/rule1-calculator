@@ -465,52 +465,93 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
     }
     
     // Calculate growth from income statements if growth endpoint failed or unavailable
-    if (!growthData || !growthData.growthEPS || !growthData.growthRevenue) {
+    // Check if we need to calculate (growthData is null or missing growth fields)
+    const needsGrowthCalculation = !growthData || 
+                                   growthData.growthEPS === undefined || 
+                                   growthData.growthEPS === null ||
+                                   growthData.growthRevenue === undefined || 
+                                   growthData.growthRevenue === null;
+    
+    if (needsGrowthCalculation) {
       try {
-        console.log('FMP: Fetching income statements to calculate growth...');
+        console.log('FMP: Growth endpoint unavailable, fetching income statements to calculate growth...');
         const incomeResponse = await axios.get(`${BASE_URL}/income-statement`, {
-          params: { symbol: symbol, apikey: API_KEY, limit: 5, period: 'annual' }, // Get annual statements
+          params: { symbol: symbol, apikey: API_KEY, limit: 5 }, // Get annual statements (period param may not be supported)
           headers: { 'Accept': 'application/json' },
           timeout: 5000
         });
         
         if (incomeResponse.data && Array.isArray(incomeResponse.data) && incomeResponse.data.length >= 2) {
           const statements = incomeResponse.data;
+          
+          // Filter for annual statements (typically have dates ending in specific months or period='FY')
           // Most recent is first, previous year is second
-          const current = statements[0];
-          const previous = statements[1];
+          const annualStatements = statements.filter((s: any) => {
+            const date = s.date || '';
+            const period = s.period || '';
+            // Annual statements typically end in Q4 (Dec/Jan) or are marked as 'FY'
+            return period === 'FY' || date.includes('12-31') || date.includes('01-31') || 
+                   date.includes('-12-') || date.includes('-01-');
+          });
           
-          // Calculate EPS Growth
-          const currentEPS = current.eps || current.earningsPerShare || current.netIncomePerShare;
-          const previousEPS = previous.eps || previous.earningsPerShare || previous.netIncomePerShare;
+          // Use filtered annual statements, or fall back to first 2 if no annual found
+          const statementsToUse = annualStatements.length >= 2 ? annualStatements : statements.slice(0, 2);
           
-          // Calculate Revenue Growth
-          const currentRevenue = current.revenue || current.totalRevenue;
-          const previousRevenue = previous.revenue || previous.totalRevenue;
-          
-          if (currentEPS && previousEPS && previousEPS !== 0) {
-            const epsGrowth = ((currentEPS - previousEPS) / Math.abs(previousEPS)) * 100;
-            if (!growthData) growthData = {};
-            growthData.growthEPS = epsGrowth / 100; // Store as decimal for normalizeGrowth
-            console.log('FMP: Calculated EPS Growth from income statements:', epsGrowth.toFixed(2), '%');
-          }
-          
-          if (currentRevenue && previousRevenue && previousRevenue !== 0) {
-            const revenueGrowth = ((currentRevenue - previousRevenue) / Math.abs(previousRevenue)) * 100;
-            if (!growthData) growthData = {};
-            growthData.growthRevenue = revenueGrowth / 100; // Store as decimal for normalizeGrowth
-            console.log('FMP: Calculated Revenue Growth from income statements:', revenueGrowth.toFixed(2), '%');
+          if (statementsToUse.length >= 2) {
+            const current = statementsToUse[0];
+            const previous = statementsToUse[1];
+            
+            console.log('FMP: Using income statements - Current:', current.date || 'N/A', 'Previous:', previous.date || 'N/A');
+            
+            // Calculate EPS Growth - try multiple field names
+            const currentEPS = current.eps || current.earningsPerShare || current.netIncomePerShare || 
+                              (current.netIncome && current.weightedAverageShsOut ? current.netIncome / current.weightedAverageShsOut : null);
+            const previousEPS = previous.eps || previous.earningsPerShare || previous.netIncomePerShare ||
+                               (previous.netIncome && previous.weightedAverageShsOut ? previous.netIncome / previous.weightedAverageShsOut : null);
+            
+            // Calculate Revenue Growth
+            const currentRevenue = current.revenue || current.totalRevenue || current.revenues;
+            const previousRevenue = previous.revenue || previous.totalRevenue || previous.revenues;
+            
+            if (currentEPS && previousEPS && previousEPS !== 0) {
+              const epsGrowth = ((currentEPS - previousEPS) / Math.abs(previousEPS)) * 100;
+              if (!growthData) growthData = {};
+              growthData.growthEPS = epsGrowth / 100; // Store as decimal for normalizeGrowth
+              console.log('FMP: ✅ Calculated EPS Growth from income statements:', epsGrowth.toFixed(2), '%');
+            } else {
+              console.warn('FMP: Could not calculate EPS Growth - Current EPS:', currentEPS, 'Previous EPS:', previousEPS);
+            }
+            
+            if (currentRevenue && previousRevenue && previousRevenue !== 0) {
+              const revenueGrowth = ((currentRevenue - previousRevenue) / Math.abs(previousRevenue)) * 100;
+              if (!growthData) growthData = {};
+              growthData.growthRevenue = revenueGrowth / 100; // Store as decimal for normalizeGrowth
+              console.log('FMP: ✅ Calculated Revenue Growth from income statements:', revenueGrowth.toFixed(2), '%');
+            } else {
+              console.warn('FMP: Could not calculate Revenue Growth - Current Revenue:', currentRevenue, 'Previous Revenue:', previousRevenue);
+            }
+          } else {
+            console.warn('FMP: Not enough income statements to calculate growth (need at least 2 periods). Found:', statementsToUse.length);
           }
         } else {
-          console.warn('FMP: Not enough income statements to calculate growth (need at least 2 annual periods)');
+          console.warn('FMP: Income statement response format unexpected:', incomeResponse.data ? 'array length < 2' : 'not an array');
         }
       } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 402) {
-          console.warn('FMP: Income Statement endpoint also requires paid tier (402). Growth rates unavailable.');
+        if (axios.isAxiosError(error)) {
+          const status = error.response?.status;
+          if (status === 402) {
+            console.error('FMP: Income Statement endpoint also requires paid tier (402). Growth rates unavailable.');
+          } else if (status === 403) {
+            console.error('FMP: Income Statement endpoint - 403 Forbidden');
+          } else {
+            console.error('FMP: Failed to fetch income statements for growth calculation:', error.message);
+          }
         } else {
-          console.warn('FMP: Failed to fetch income statements for growth calculation:', error.message);
+          console.error('FMP: Failed to fetch income statements:', error instanceof Error ? error.message : 'Unknown error');
         }
       }
+    } else {
+      console.log('FMP: Growth data already available from growth endpoint');
     }
 
     // Fallback: Try Profile endpoint if we're missing basic data
