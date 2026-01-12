@@ -111,18 +111,23 @@ const normalizeRatio = (value: any): number | null => {
 const mapResponseToFundamentals = (
   profileData?: any,
   ratiosData?: any,
-  growthData?: any
+  growthData?: any,
+  metricsData?: any
 ): FMPFundamentals => {
   const fundamentals: FMPFundamentals = {};
 
   // Extract data from profile/key-metrics (whichever is available)
-  const metrics = profileData || {};
+  const metrics = metricsData || profileData || {};
   
-  // Extract data from ratios
+  // Extract data from ratios (CRITICAL: contains netIncomePerShareTTM which is EPS)
   const ratios = ratiosData || {};
   
   // Extract data from growth
   const growth = growthData || {};
+  
+  // Debug: Log what we received
+  console.log('FMP mapping - Ratios data keys:', Object.keys(ratios).slice(0, 10).join(', '));
+  console.log('FMP mapping - Metrics data keys:', Object.keys(metrics).slice(0, 10).join(', '));
 
   // EPS: Try multiple field names (new /stable/ endpoints use netIncomePerShareTTM)
   // CRITICAL: netIncomePerShareTTM from Ratios TTM is the EPS value
