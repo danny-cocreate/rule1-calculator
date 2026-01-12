@@ -169,8 +169,8 @@ const mapResponseToFundamentals = (
   const peValue = peFields.find(v => v !== undefined && v !== null);
   fundamentals.peRatio = normalizeRatio(peValue);
 
-  // ROE: Always fetch from Yahoo Finance (FMP data is unreliable/incorrect)
-  // Set to null initially, will be fetched from Yahoo Finance in fetchFundamentals
+  // ROE: Always fetch from backend (SEC EDGAR primary, Yahoo Finance fallback)
+  // Set to null initially, will be fetched from backend in fetchFundamentals
   fundamentals.roe = null;
 
   // Debt-to-Equity: Try multiple field names (new /stable/ endpoints use debtToEquityRatioTTM)
@@ -331,7 +331,7 @@ export const fetchQuote = async (symbol: string): Promise<FMPQuote> => {
  * 
  * Strategy: Try optimal endpoint combination (1-2 calls)
  * 1. Key Metrics TTM (most comprehensive - EPS, PE, ROE, ratios)
- * 2. Income Statement Growth (growth rates)
+ * 2. Income Statement (for calculating growth rates - growth endpoint is blocked)
  * 
  * Falls back to additional endpoints if needed
  */
@@ -350,7 +350,7 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
   try {
     // Strategy: Use 2 endpoints for optimal data coverage
     // 1. Key Metrics TTM (most comprehensive)
-    // 2. Income Statement Growth (growth rates)
+    // 2. Income Statement (for calculating growth rates - growth endpoint is blocked)
     
     let metricsData: any = null;
     let ratiosData: any = null;
@@ -410,43 +410,8 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
       }
     }
 
-    // Try Income Statement Growth for growth rates (may require paid tier - 402 error)
-    // If that fails, calculate from income statements instead
-    try {
-      const growthResponse = await axios.get(`${BASE_URL}/income-statement-growth`, {
-        params: { symbol: symbol, apikey: API_KEY, limit: 10 },
-        headers: { 'Accept': 'application/json' },
-        timeout: 5000
-      });
-      
-      if (growthResponse.data && Array.isArray(growthResponse.data) && growthResponse.data.length > 0) {
-        const annualPeriod = growthResponse.data.find((period: any) => {
-          const date = period.date || '';
-          return date.includes('12-31') || date.includes('01-31') || period.period === 'FY';
-        }) || growthResponse.data[0];
-        
-        growthData = annualPeriod;
-        console.log('FMP: Income Statement Growth data fetched (period:', growthData.date || 'N/A', ')');
-      } else if (growthResponse.data && !Array.isArray(growthResponse.data)) {
-        growthData = growthResponse.data;
-      }
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        if (status === 402) {
-          console.warn('FMP: Income Statement Growth requires paid tier (402). Calculating from income statements instead...');
-        } else if (status === 403) {
-          console.error('FMP: Income Statement Growth - 403 Forbidden');
-        } else {
-          console.warn('FMP: Income Statement Growth endpoint failed, calculating from income statements instead...');
-        }
-      } else {
-        console.warn('FMP: Income Statement Growth endpoint failed, calculating from income statements instead...');
-      }
-    }
-    
-    // Calculate growth from income statements if growth endpoint failed or unavailable
-    // Check if we need to calculate (growthData is null or missing growth fields)
+    // Income Statement Growth endpoint is blocked (paid tier required)
+    // Calculate growth directly from income statements
     const needsGrowthCalculation = !growthData || 
                                    growthData.growthEPS === undefined || 
                                    growthData.growthEPS === null ||
@@ -571,8 +536,8 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
       metricsData
     );
 
-    // Always fetch ROE from Yahoo Finance (FMP data is unreliable/incorrect)
-    console.log('FMP: Fetching ROE from Yahoo Finance...');
+    // Always fetch ROE from backend (SEC EDGAR primary, Yahoo Finance fallback)
+    console.log('FMP: Fetching ROE from backend (SEC EDGAR)...');
     try {
       const backendUrl = import.meta.env.VITE_SCUTTLEBUTT_API_URL || 'http://localhost:8000';
       const yahooRoeResponse = await axios.get(`${backendUrl}/fisher-research/yahoo-roe/${symbol}`, {
@@ -582,26 +547,27 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
       if (yahooRoeResponse.data && yahooRoeResponse.data.roe) {
         const yahooROE = yahooRoeResponse.data.roe;
         fundamentals.roe = yahooROE;
-        console.log('FMP: ✅ Yahoo Finance ROE:', yahooROE.toFixed(2), '%');
+        const source = yahooRoeResponse.data.source || 'backend';
+        console.log(`FMP: ✅ ROE from ${source.toUpperCase()}:`, yahooROE.toFixed(2), '%');
       } else {
-        console.warn('FMP: Yahoo Finance ROE not available');
+        console.warn('FMP: ROE not available from backend');
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
         if (status === 404) {
-          console.warn('FMP: Yahoo Finance ROE not found for', symbol);
+          console.warn('FMP: ROE not found for', symbol);
         } else if (status === 503) {
-          console.warn('FMP: Yahoo Finance rate limited (503). ROE will be unavailable. Try again in a few minutes.');
+          console.warn('FMP: Backend rate limited (503). ROE will be unavailable. Try again in a few minutes.');
         } else if (status === 500) {
-          console.warn('FMP: Yahoo Finance API error:', error.response?.data?.detail || error.message);
+          console.warn('FMP: Backend API error:', error.response?.data?.detail || error.message);
         } else {
-          console.warn('FMP: Failed to fetch ROE from Yahoo Finance:', error.message, `(Status: ${status || 'N/A'})`);
+          console.warn('FMP: Failed to fetch ROE from backend:', error.message, `(Status: ${status || 'N/A'})`);
         }
       } else {
-        console.warn('FMP: Error fetching Yahoo Finance ROE:', error instanceof Error ? error.message : 'Unknown error');
+        console.warn('FMP: Error fetching ROE from backend:', error instanceof Error ? error.message : 'Unknown error');
       }
-      // Keep ROE as null if Yahoo Finance fails (graceful degradation)
+      // Keep ROE as null if backend fails (graceful degradation)
     }
 
     console.log('FMP fundamentals extracted:', fundamentals);
