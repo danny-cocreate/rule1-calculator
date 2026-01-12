@@ -1,8 +1,7 @@
 import axios from 'axios';
 import { 
   GeminiResearchRequest, 
-  GeminiResearchResponse, 
-  GeminiCriterionRating
+  GeminiResearchResponse
 } from '../types/fisher';
 
 // Backend API URL
