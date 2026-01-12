@@ -117,13 +117,22 @@ export const FisherScorecard: React.FC<FisherScorecardProps> = ({ stockData, onS
       // Still show quantitative criteria even if qualitative research fails
       try {
         const quantitativeCriteria = calculateQuantitativeFisherCriteria(stockData);
-        const overallScore = calculateOverallFisherScore(quantitativeCriteria);
+        // Convert to full FisherCriterion[] by adding missing required fields
+        const fullCriteria: FisherCriterion[] = quantitativeCriteria.map(qc => ({
+          ...qc,
+          rating: qc.rating ?? 0,
+          justification: qc.justification ?? 'Calculated from financial data',
+          dataSource: qc.dataSource ?? 'fmp',
+          lastUpdated: new Date(),
+        })) as FisherCriterion[];
+        
+        const overallScore = calculateOverallFisherScore(fullCriteria);
         
         const partialScorecard: FisherScorecardType = {
           symbol: stockData.symbol,
           companyName: stockData.companyName,
           overallScore,
-          criteria: quantitativeCriteria,
+          criteria: fullCriteria,
           createdAt: new Date(),
           lastUpdated: new Date(),
         };
