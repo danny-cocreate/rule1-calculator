@@ -169,32 +169,9 @@ const mapResponseToFundamentals = (
   const peValue = peFields.find(v => v !== undefined && v !== null);
   fundamentals.peRatio = normalizeRatio(peValue);
 
-  // ROE: Try multiple field names (new /stable/ endpoints use returnOnEquityTTM)
-  // Note: FMP's ROE data may be incorrect/outdated, so we'll also try to calculate it
-  const roeFields = [
-    metrics.returnOnEquityTTM,  // New /stable/ endpoint field (Key Metrics TTM) - PRIMARY
-    ratios.returnOnEquityTTM,   // Also check Ratios TTM
-    metrics.roe,
-    metrics.returnOnEquity,
-    ratios.roe,
-    ratios.returnOnEquity
-  ];
-  const roeValue = roeFields.find(v => v !== undefined && v !== null);
-  fundamentals.roe = normalizeROE(roeValue);
-  
-  // Debug: Log ROE extraction and warn if suspiciously low
-  if (fundamentals.roe === null) {
-    console.warn('FMP: ROE not found. Available ROE-related keys in metrics:', 
-      Object.keys(metrics).filter(k => k.toLowerCase().includes('roe') || k.toLowerCase().includes('return')).join(', '));
-    console.warn('FMP: ROE-related keys in ratios:', 
-      Object.keys(ratios).filter(k => k.toLowerCase().includes('roe') || k.toLowerCase().includes('return')).join(', '));
-  } else {
-    console.log('FMP: ROE extracted from API:', fundamentals.roe, '% (raw value:', roeValue, ')');
-    // Warn if ROE seems suspiciously low (< 5%) - might indicate wrong data
-    if (fundamentals.roe < 5 && fundamentals.roe > 0) {
-      console.warn('FMP: ROE seems unusually low (', fundamentals.roe, '%). FMP data may be incorrect. Consider calculating from income statement.');
-    }
-  }
+  // ROE: Always fetch from Yahoo Finance (FMP data is unreliable/incorrect)
+  // Set to null initially, will be fetched from Yahoo Finance in fetchFundamentals
+  fundamentals.roe = null;
 
   // Debt-to-Equity: Try multiple field names (new /stable/ endpoints use debtToEquityRatioTTM)
   const debtEquityFields = [
@@ -600,38 +577,33 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
       metricsData
     );
 
-    // If ROE seems suspiciously low (< 5%), try to get it from Yahoo Finance
-    // FMP's ROE data may be incorrect/outdated (e.g., NVDA shows 1% but should be ~107%)
-    console.log('FMP: Checking ROE for calculation - Current ROE:', fundamentals.roe, 'Type:', typeof fundamentals.roe);
-    if (fundamentals.roe !== null && fundamentals.roe < 5 && fundamentals.roe > 0) {
-      console.log('FMP: ROE seems unusually low (', fundamentals.roe.toFixed(2), '%), fetching from Yahoo Finance...');
-      try {
-        // Get backend URL from environment
-        const backendUrl = import.meta.env.VITE_SCUTTLEBUTT_API_URL || 'http://localhost:8000';
-        const yahooRoeResponse = await axios.get(`${backendUrl}/fisher-research/yahoo-roe/${symbol}`, {
-          timeout: 10000
-        });
-        
-        if (yahooRoeResponse.data && yahooRoeResponse.data.roe) {
-          const yahooROE = yahooRoeResponse.data.roe;
-          console.log('FMP: ✅ Yahoo Finance ROE:', yahooROE.toFixed(2), '% (was', fundamentals.roe.toFixed(2), '%)');
-          fundamentals.roe = yahooROE;
-        } else {
-          console.warn('FMP: Yahoo Finance ROE not available');
-        }
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          if (error.response?.status === 404) {
-            console.warn('FMP: Yahoo Finance ROE not found for', symbol);
-          } else if (error.response?.status === 500) {
-            console.warn('FMP: Yahoo Finance API error:', error.response?.data?.detail || error.message);
-          } else {
-            console.warn('FMP: Failed to fetch ROE from Yahoo Finance:', error.message);
-          }
-        } else {
-          console.warn('FMP: Error fetching Yahoo Finance ROE:', error instanceof Error ? error.message : 'Unknown error');
-        }
+    // Always fetch ROE from Yahoo Finance (FMP data is unreliable/incorrect)
+    console.log('FMP: Fetching ROE from Yahoo Finance...');
+    try {
+      const backendUrl = import.meta.env.VITE_SCUTTLEBUTT_API_URL || 'http://localhost:8000';
+      const yahooRoeResponse = await axios.get(`${backendUrl}/fisher-research/yahoo-roe/${symbol}`, {
+        timeout: 10000
+      });
+      
+      if (yahooRoeResponse.data && yahooRoeResponse.data.roe) {
+        fundamentals.roe = yahooRoeResponse.data.roe;
+        console.log('FMP: ✅ Yahoo Finance ROE:', fundamentals.roe.toFixed(2), '%');
+      } else {
+        console.warn('FMP: Yahoo Finance ROE not available');
       }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 404) {
+          console.warn('FMP: Yahoo Finance ROE not found for', symbol);
+        } else if (error.response?.status === 500) {
+          console.warn('FMP: Yahoo Finance API error:', error.response?.data?.detail || error.message);
+        } else {
+          console.warn('FMP: Failed to fetch ROE from Yahoo Finance:', error.message);
+        }
+      } else {
+        console.warn('FMP: Error fetching Yahoo Finance ROE:', error instanceof Error ? error.message : 'Unknown error');
+      }
+      // Keep ROE as null if Yahoo Finance fails (graceful degradation)
     }
 
     console.log('FMP fundamentals extracted:', fundamentals);
