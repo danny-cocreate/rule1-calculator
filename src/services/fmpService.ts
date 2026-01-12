@@ -124,8 +124,11 @@ const mapResponseToFundamentals = (
   // Extract data from growth
   const growth = growthData || {};
 
-  // EPS: Try multiple field names
+  // EPS: Try multiple field names (new /stable/ endpoints use netIncomePerShareTTM)
+  // CRITICAL: netIncomePerShareTTM from Ratios TTM is the EPS value
   const epsFields = [
+    ratios.netIncomePerShareTTM,  // New /stable/ endpoint field (Ratios TTM) - PRIMARY
+    ratios.netIncomePerShare,      // Fallback
     metrics.eps,
     metrics.earningsPerShare,
     metrics.earningsPerShareTTM,
@@ -135,50 +138,60 @@ const mapResponseToFundamentals = (
   ];
   const epsValue = epsFields.find(v => v !== undefined && v !== null);
   if (epsValue !== undefined && epsValue !== null) {
-    fundamentals.eps = normalizeEPS(epsValue);
+    const normalized = normalizeEPS(epsValue);
+    if (normalized !== null) {
+      fundamentals.eps = normalized;
+      console.log('FMP: EPS extracted:', normalized, 'from field:', 
+        ratios.netIncomePerShareTTM !== undefined ? 'netIncomePerShareTTM' : 'other');
+    }
+  } else {
+    console.warn('FMP: EPS not found in any field. Available ratio fields:', Object.keys(ratios).filter(k => k.toLowerCase().includes('share') || k.toLowerCase().includes('eps')).join(', '));
   }
 
-  // PE Ratio: Try multiple field names
+  // PE Ratio: Try multiple field names (new /stable/ endpoints use priceToEarningsRatioTTM)
   const peFields = [
+    ratios.priceToEarningsRatioTTM,  // New /stable/ endpoint field
+    ratios.priceToEarningsRatio,      // Fallback
     metrics.peRatio,
     metrics.priceToEarningsRatio,
     metrics.priceEarningsRatio,
     metrics.pe,
     ratios.peRatio,
-    ratios.priceToEarningsRatio,
     ratios.priceEarningsRatio
   ];
   const peValue = peFields.find(v => v !== undefined && v !== null);
   fundamentals.peRatio = normalizeRatio(peValue);
 
-  // ROE: Try multiple field names
+  // ROE: Try multiple field names (new /stable/ endpoints use returnOnEquityTTM)
   const roeFields = [
+    metrics.returnOnEquityTTM,  // New /stable/ endpoint field (Key Metrics TTM)
+    ratios.returnOnEquityTTM,   // Also check Ratios TTM
     metrics.roe,
     metrics.returnOnEquity,
-    metrics.returnOnEquityTTM,
     ratios.roe,
-    ratios.returnOnEquity,
-    ratios.returnOnEquityTTM
+    ratios.returnOnEquity
   ];
   const roeValue = roeFields.find(v => v !== undefined && v !== null);
   fundamentals.roe = normalizeROE(roeValue);
 
-  // Debt-to-Equity: Try multiple field names
+  // Debt-to-Equity: Try multiple field names (new /stable/ endpoints use debtToEquityRatioTTM)
   const debtEquityFields = [
+    ratios.debtToEquityRatioTTM,  // New /stable/ endpoint field
+    ratios.debtToEquityRatio,      // Fallback
     metrics.debtEquityRatio,
     metrics.debtToEquity,
     metrics.debtToEquityRatio,
     ratios.debtEquityRatio,
-    ratios.debtToEquity,
-    ratios.debtToEquityRatio
+    ratios.debtToEquity
   ];
   const debtEquityValue = debtEquityFields.find(v => v !== undefined && v !== null);
   fundamentals.debtToEquity = normalizeRatio(debtEquityValue);
 
-  // Current Ratio: Try multiple field names
+  // Current Ratio: Try multiple field names (new /stable/ endpoints use currentRatioTTM)
   const currentRatioFields = [
+    ratios.currentRatioTTM,  // New /stable/ endpoint field (Ratios TTM)
+    metrics.currentRatioTTM,  // Also check Key Metrics TTM
     ratios.currentRatio,
-    ratios.currentRatioTTM,
     metrics.currentRatio
   ];
   const currentRatioValue = currentRatioFields.find(v => v !== undefined && v !== null);
@@ -346,28 +359,27 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
       }
     }
 
-    // Try Ratios TTM as alternative/complement
+    // Try Ratios TTM - ALWAYS fetch this (contains EPS as netIncomePerShareTTM)
     // New endpoint format: /stable/ratios-ttm?symbol=AAPL&apikey=KEY
-    if (!metricsData || !metricsData.roe || !metricsData.currentRatio) {
-      try {
-        const ratiosResponse = await axios.get(`${BASE_URL}/ratios-ttm`, {
-          params: { symbol: symbol, apikey: API_KEY },
-          headers: { 'Accept': 'application/json' },
-          timeout: 5000
-        });
-        
-        if (ratiosResponse.data && Array.isArray(ratiosResponse.data) && ratiosResponse.data.length > 0) {
-          ratiosData = ratiosResponse.data[0];
-          console.log('FMP: Ratios TTM data fetched');
-        } else if (ratiosResponse.data && !Array.isArray(ratiosResponse.data)) {
-          ratiosData = ratiosResponse.data;
-        }
-      } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 403) {
-          console.error('FMP: Ratios TTM - 403 Forbidden');
-        } else {
-          console.warn('FMP: Ratios TTM endpoint failed');
-        }
+    // This is critical because it contains netIncomePerShareTTM (EPS) and priceToEarningsRatioTTM (PE)
+    try {
+      const ratiosResponse = await axios.get(`${BASE_URL}/ratios-ttm`, {
+        params: { symbol: symbol, apikey: API_KEY },
+        headers: { 'Accept': 'application/json' },
+        timeout: 5000
+      });
+      
+      if (ratiosResponse.data && Array.isArray(ratiosResponse.data) && ratiosResponse.data.length > 0) {
+        ratiosData = ratiosResponse.data[0];
+        console.log('FMP: Ratios TTM data fetched');
+      } else if (ratiosResponse.data && !Array.isArray(ratiosResponse.data)) {
+        ratiosData = ratiosResponse.data;
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 403) {
+        console.error('FMP: Ratios TTM - 403 Forbidden');
+      } else {
+        console.warn('FMP: Ratios TTM endpoint failed');
       }
     }
 
@@ -420,10 +432,12 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
     }
 
     // Map all data to our fundamentals interface
+    // Pass metricsData separately so it can be used for ROE (returnOnEquityTTM)
     const fundamentals = mapResponseToFundamentals(
-      metricsData || profileData,
+      profileData,
       ratiosData,
-      growthData
+      growthData,
+      metricsData
     );
 
     console.log('FMP fundamentals extracted:', fundamentals);
