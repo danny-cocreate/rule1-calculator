@@ -379,6 +379,7 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
     let ratiosData: any = null;
     let growthData: any = null;
     let profileData: any = null;
+    let incomeStatementData: any = null; // Store for ROE calculation
 
     // Try Key Metrics TTM first (most comprehensive single endpoint)
     // New endpoint format: /stable/key-metrics-ttm?symbol=AAPL&apikey=KEY
@@ -484,6 +485,11 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
           headers: { 'Accept': 'application/json' },
           timeout: 5000
         });
+        
+        // Store income statement data for potential ROE calculation
+        if (incomeResponse.data) {
+          incomeStatementData = incomeResponse.data;
+        }
         
         if (incomeResponse.data && Array.isArray(incomeResponse.data) && incomeResponse.data.length >= 2) {
           const statements = incomeResponse.data;
