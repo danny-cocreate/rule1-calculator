@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+import requests
 
 from services.scuttlebutt import research_company
 
@@ -66,3 +67,50 @@ async def research_fisher_criteria(request: FisherResearchRequest):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get('/yahoo-roe/{symbol}')
+async def get_yahoo_roe(symbol: str):
+    """
+    Get ROE from Yahoo Finance JSON API.
+    Falls back to Yahoo Finance when FMP data is incorrect.
+    """
+    try:
+        url = f'https://query1.finance.yahoo.com/v10/finance/quoteSummary/{symbol}'
+        params = {'modules': 'keyStatistics,financialData'}
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        # Extract ROE from keyStatistics
+        quote_summary = data.get('quoteSummary', {})
+        result = quote_summary.get('result', [])
+        
+        if not result:
+            raise HTTPException(status_code=404, detail=f'No data found for symbol {symbol}')
+        
+        key_stats = result[0].get('keyStatistics', {})
+        roe_data = key_stats.get('returnOnEquity', {})
+        roe_raw = roe_data.get('raw')
+        
+        if roe_raw is None:
+            # Try financialData as fallback
+            financial_data = result[0].get('financialData', {})
+            roe_data = financial_data.get('returnOnEquity', {})
+            roe_raw = roe_data.get('raw')
+        
+        if roe_raw is not None:
+            # Convert to percentage (Yahoo returns as decimal, e.g., 1.0736 = 107.36%)
+            roe_percentage = roe_raw * 100
+            return {'symbol': symbol, 'roe': roe_percentage}
+        else:
+            raise HTTPException(status_code=404, detail='ROE not found in Yahoo Finance data')
+            
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=f'Failed to fetch ROE from Yahoo Finance: {str(e)}')
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'Error processing Yahoo Finance data: {str(e)}')
