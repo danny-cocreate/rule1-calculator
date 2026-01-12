@@ -602,6 +602,7 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
 
     // If ROE seems suspiciously low (< 5%), try to calculate it from income statement and balance sheet
     // FMP's ROE data may be incorrect/outdated (e.g., NVDA shows 1% but should be ~107%)
+    console.log('FMP: Checking ROE for calculation - Current ROE:', fundamentals.roe, 'Type:', typeof fundamentals.roe);
     if (fundamentals.roe !== null && fundamentals.roe < 5 && fundamentals.roe > 0) {
       console.log('FMP: ROE seems unusually low (', fundamentals.roe.toFixed(2), '%), attempting to calculate from financial statements...');
       try {
