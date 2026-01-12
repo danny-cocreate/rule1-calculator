@@ -80,17 +80,19 @@ const normalizeGrowth = (value: any, defaultVal: number = 0.08): number => {
 
 /**
  * Normalize EPS value
- * EPS must be a number (can be 0 for loss-making companies)
+ * EPS must be a number (can be 0 for loss-making companies, can be negative for losses)
+ * Note: netIncomePerShareTTM from new /stable/ endpoints is already EPS
+ * Returns null if invalid (to throw proper errors instead of using defaults)
  */
-const normalizeEPS = (value: any, defaultVal: number = 1.0): number => {
-  if (value === null || value === undefined) return defaultVal;
+const normalizeEPS = (value: any): number | null => {
+  if (value === null || value === undefined) return null;
   const num = parseFloat(String(value));
-  if (isNaN(num) || !isFinite(num) || num < 0) {
-    // Allow 0 (break-even) but not negative
-    return num === 0 ? 0 : defaultVal;
+  if (isNaN(num) || !isFinite(num)) {
+    return null;
   }
+  // Allow negative EPS (loss-making companies) and 0 (break-even)
   // Cap at reasonable maximum
-  if (num > 1000) return defaultVal;
+  if (Math.abs(num) > 1000) return null;
   return num;
 };
 
