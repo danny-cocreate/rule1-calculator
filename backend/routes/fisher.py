@@ -101,20 +101,26 @@ async def get_yahoo_roe(symbol: str):
             
             response = requests.get(url, params=params, headers=headers, timeout=10)
             
+            # Log response for debugging
+            print(f"Yahoo Finance API response for {symbol}: Status {response.status_code} (attempt {attempt + 1}/{max_retries})")
+            
             # Handle rate limiting with retry
             if response.status_code == 429:
+                wait_time = retry_delay * (attempt + 1)  # Exponential backoff
+                print(f"Yahoo Finance rate limited (429). Waiting {wait_time}s before retry...")
                 if attempt < max_retries - 1:
-                    wait_time = retry_delay * (attempt + 1)  # Exponential backoff
                     time.sleep(wait_time)
                     continue
                 else:
+                    print(f"Yahoo Finance rate limit exceeded after {max_retries} attempts")
                     raise HTTPException(
                         status_code=503, 
-                        detail=f'Yahoo Finance rate limit exceeded. Please try again later.'
+                        detail=f'Yahoo Finance rate limit exceeded. Please try again in a few minutes.'
                     )
             
             # Handle auth errors
             if response.status_code == 401 or response.status_code == 403:
+                print(f"Yahoo Finance API access denied: {response.status_code}")
                 raise HTTPException(
                     status_code=500,
                     detail=f'Yahoo Finance API access denied. Status: {response.status_code}'
@@ -122,6 +128,13 @@ async def get_yahoo_roe(symbol: str):
             
             # Handle other errors
             if response.status_code != 200:
+                print(f"Yahoo Finance API error: Status {response.status_code}, Response: {response.text[:200]}")
+                # For 5xx errors, retry
+                if response.status_code >= 500 and attempt < max_retries - 1:
+                    wait_time = retry_delay * (attempt + 1)
+                    print(f"Yahoo Finance server error. Waiting {wait_time}s before retry...")
+                    time.sleep(wait_time)
+                    continue
                 raise HTTPException(
                     status_code=500,
                     detail=f'Yahoo Finance API error. Status: {response.status_code}'

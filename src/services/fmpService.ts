@@ -588,12 +588,15 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        if (error.response?.status === 404) {
+        const status = error.response?.status;
+        if (status === 404) {
           console.warn('FMP: Yahoo Finance ROE not found for', symbol);
-        } else if (error.response?.status === 500) {
+        } else if (status === 503) {
+          console.warn('FMP: Yahoo Finance rate limited (503). ROE will be unavailable. Try again in a few minutes.');
+        } else if (status === 500) {
           console.warn('FMP: Yahoo Finance API error:', error.response?.data?.detail || error.message);
         } else {
-          console.warn('FMP: Failed to fetch ROE from Yahoo Finance:', error.message);
+          console.warn('FMP: Failed to fetch ROE from Yahoo Finance:', error.message, `(Status: ${status || 'N/A'})`);
         }
       } else {
         console.warn('FMP: Error fetching Yahoo Finance ROE:', error instanceof Error ? error.message : 'Unknown error');
