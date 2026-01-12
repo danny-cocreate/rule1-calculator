@@ -2,7 +2,7 @@
 """
 Scuttlebutt Company Research Orchestrator
 
-Top-level orchestrator that ties together Tavily + Ollama scripts.
+Top-level orchestrator that ties together Tavily + OpenRouter scripts.
 """
 
 import os
@@ -17,7 +17,15 @@ execution_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, execution_dir)
 
 from tavily_scuttlebutt import aggregate_stakeholder_signals
-from ollama_scuttlebutt_analysis import analyze_signals
+
+# Use OpenRouter instead of Ollama (no VPS needed!)
+try:
+    from openrouter_scuttlebutt_analysis import analyze_signals_with_openrouter
+    USE_OPENROUTER = True
+except ImportError:
+    # Fallback to Ollama if OpenRouter not available
+    from ollama_scuttlebutt_analysis import analyze_signals
+    USE_OPENROUTER = False
 
 
 def run_scuttlebutt_research(
@@ -57,16 +65,26 @@ def run_scuttlebutt_research(
         'signals': signals,
     }
     
-    # Step 2: Analyze signals with Ollama
-    print(f'Step 2: Analyzing signals with Ollama...', file=sys.stderr)
-    analysis_result = analyze_signals(
-        signals=signals,
-        company_name=company_name,
-        ticker=ticker
-    )
+    # Step 2: Analyze signals with OpenRouter (or Ollama fallback)
+    if USE_OPENROUTER:
+        print(f'Step 2: Analyzing signals with OpenRouter...', file=sys.stderr)
+        signals_data = {
+            'signals': signals,
+            'companyName': company_name,
+            'ticker': ticker,
+            'researchDate': datetime.now().isoformat()
+        }
+        analysis_result = analyze_signals_with_openrouter(signals_data)
+    else:
+        print(f'Step 2: Analyzing signals with Ollama...', file=sys.stderr)
+        analysis_result = analyze_signals(
+            signals=signals,
+            company_name=company_name,
+            ticker=ticker
+        )
     
     # Step 3: Combine results
-    model_used = analysis_result.get('modelUsed', 'ollama-llama3.2')
+    model_used = analysis_result.get('modelUsed', 'openrouter-gpt-4o-mini' if USE_OPENROUTER else 'ollama-llama3.2')
     result = {
         'company': company_name,
         'ticker': ticker,

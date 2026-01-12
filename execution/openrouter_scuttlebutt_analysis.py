@@ -25,10 +25,10 @@ def analyze_signals_with_openrouter(signals_data: Dict[str, Any]) -> Dict[str, A
         signals_data: Dictionary with stakeholder signals from Tavily
     
     Returns:
-        Dictionary with Fisher criteria ratings
+        Dictionary with Fisher criteria ratings (compatible with Ollama format)
     """
     if not OPENROUTER_API_KEY:
-        raise ValueError('OPENROUTER_API_KEY environment variable not set')
+        raise ValueError('OPENROUTER_API_KEY environment variable not set. Please set it in your environment variables.')
     
     # Build prompt from signals
     prompt = build_analysis_prompt(signals_data)
@@ -41,7 +41,7 @@ def analyze_signals_with_openrouter(signals_data: Dict[str, Any]) -> Dict[str, A
     
     return {
         'ratings': ratings,
-        'modelUsed': OPENROUTER_MODEL,
+        'modelUsed': f'openrouter-{OPENROUTER_MODEL}',
         'researchDate': signals_data.get('researchDate'),
     }
 

@@ -22,7 +22,9 @@ app = FastAPI(
 )
 
 # CORS configuration
-cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:3000').split(',')
+# Allow Netlify frontend and local development
+cors_origins_env = os.getenv('CORS_ORIGINS', 'http://localhost:5173,http://localhost:3000,https://mos-calculator2.netlify.app')
+cors_origins = [origin.strip() for origin in cors_origins_env.split(',')]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,

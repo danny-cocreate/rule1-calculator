@@ -61,7 +61,7 @@ async def research_fisher_criteria(request: FisherResearchRequest):
             symbol=result.get('symbol', request.symbol),
             ratings=[CriterionRating(**r) for r in ratings],
             researchDate=result.get('researchDate', datetime.now().isoformat()),
-            modelUsed=result.get('modelUsed', 'ollama-llama3.2'),
+            modelUsed=result.get('modelUsed', 'openrouter-gpt-4o-mini'),
         )
         
     except Exception as e:

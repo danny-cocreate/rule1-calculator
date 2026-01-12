@@ -80,7 +80,10 @@ def research_company(
         # Map to API response format
         analysis = result.get('analysis', {})
         ratings = analysis.get('ratings', [])
-        model_used = result.get('modelUsed', 'ollama-llama3.2')
+        # OpenRouter returns ratings directly, Ollama returns in analysis
+        if not ratings and 'ratings' in result:
+            ratings = result['ratings']
+        model_used = result.get('modelUsed', 'openrouter-gpt-4o-mini')
         
         # Format response to match GeminiResearchResponse structure
         return {

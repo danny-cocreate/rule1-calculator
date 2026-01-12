@@ -1,0 +1,19 @@
+# Render Configuration
+# This file configures the backend service for Render deployment
+
+services:
+  - type: web
+    name: fisher-research-api
+    env: python
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: TAVILY_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: OPENROUTER_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: OPENROUTER_MODEL
+        value: openai/gpt-4o-mini  # Default model (cheap and good)
+      - key: PORT
+        value: 8000
+    healthCheckPath: /health
