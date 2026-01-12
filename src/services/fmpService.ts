@@ -600,76 +600,37 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
       metricsData
     );
 
-    // If ROE seems suspiciously low (< 5%), try to calculate it from income statement and balance sheet
+    // If ROE seems suspiciously low (< 5%), try to get it from Yahoo Finance
     // FMP's ROE data may be incorrect/outdated (e.g., NVDA shows 1% but should be ~107%)
     console.log('FMP: Checking ROE for calculation - Current ROE:', fundamentals.roe, 'Type:', typeof fundamentals.roe);
     if (fundamentals.roe !== null && fundamentals.roe < 5 && fundamentals.roe > 0) {
-      console.log('FMP: ROE seems unusually low (', fundamentals.roe.toFixed(2), '%), attempting to calculate from financial statements...');
+      console.log('FMP: ROE seems unusually low (', fundamentals.roe.toFixed(2), '%), fetching from Yahoo Finance...');
       try {
-        // Try to reuse income statement if we already fetched it for growth calculation
-        // Otherwise fetch it now
-        let incomeData: any = null;
-        let balanceData: any = null;
+        // Get backend URL from environment
+        const backendUrl = import.meta.env.VITE_SCUTTLEBUTT_API_URL || 'http://localhost:8000';
+        const yahooRoeResponse = await axios.get(`${backendUrl}/fisher-research/yahoo-roe/${symbol}`, {
+          timeout: 10000
+        });
         
-        // Fetch income statement and balance sheet to calculate ROE
-        const [incomeResponse, balanceResponse] = await Promise.all([
-          axios.get(`${BASE_URL}/income-statement`, {
-            params: { symbol: symbol, apikey: API_KEY, limit: 1 },
-            headers: { 'Accept': 'application/json' },
-            timeout: 5000
-          }).catch((error) => {
-            if (axios.isAxiosError(error) && error.response?.status === 402) {
-              console.warn('FMP: Income Statement endpoint requires paid tier (402) for ROE calculation');
-            } else {
-              console.warn('FMP: Income Statement fetch failed for ROE:', error instanceof Error ? error.message : 'Unknown error');
-            }
-            return null;
-          }),
-          axios.get(`${BASE_URL}/balance-sheet-statement`, {
-            params: { symbol: symbol, apikey: API_KEY, limit: 1 },
-            headers: { 'Accept': 'application/json' },
-            timeout: 5000
-          }).catch((error) => {
-            if (axios.isAxiosError(error) && error.response?.status === 402) {
-              console.warn('FMP: Balance Sheet endpoint requires paid tier (402) for ROE calculation');
-            } else {
-              console.warn('FMP: Balance Sheet fetch failed for ROE:', error instanceof Error ? error.message : 'Unknown error');
-            }
-            return null;
-          })
-        ]);
-
-        if (incomeResponse?.data && balanceResponse?.data) {
-          const income = Array.isArray(incomeResponse.data) ? incomeResponse.data[0] : incomeResponse.data;
-          const balance = Array.isArray(balanceResponse.data) ? balanceResponse.data[0] : balanceResponse.data;
-          
-          const netIncome = income.netIncome || income.netIncomeCommonStockholders;
-          const shareholdersEquity = balance.totalStockholdersEquity || balance.shareholdersEquity || balance.commonStockEquity;
-          
-          console.log('FMP: ROE calculation - Net Income:', netIncome, 'Equity:', shareholdersEquity);
-          
-          if (netIncome && shareholdersEquity && shareholdersEquity !== 0) {
-            const calculatedROE = (netIncome / Math.abs(shareholdersEquity)) * 100;
-            console.log('FMP: Calculated ROE:', calculatedROE.toFixed(2), '%, API ROE:', fundamentals.roe.toFixed(2), '%');
-            if (calculatedROE > fundamentals.roe) {
-              console.log('FMP: ✅ Using calculated ROE:', calculatedROE.toFixed(2), '% (was', fundamentals.roe.toFixed(2), '%)');
-              fundamentals.roe = calculatedROE;
-            } else {
-              console.log('FMP: Calculated ROE (', calculatedROE.toFixed(2), '%) is not higher than API value, keeping API value');
-            }
-          } else {
-            console.warn('FMP: Could not calculate ROE - Net Income:', netIncome, 'Equity:', shareholdersEquity);
-          }
+        if (yahooRoeResponse.data && yahooRoeResponse.data.roe) {
+          const yahooROE = yahooRoeResponse.data.roe;
+          console.log('FMP: ✅ Yahoo Finance ROE:', yahooROE.toFixed(2), '% (was', fundamentals.roe.toFixed(2), '%)');
+          fundamentals.roe = yahooROE;
         } else {
-          if (!incomeResponse?.data) {
-            console.warn('FMP: Income statement not available for ROE calculation (may require paid tier)');
-          }
-          if (!balanceResponse?.data) {
-            console.warn('FMP: Balance sheet not available for ROE calculation (may require paid tier)');
-          }
+          console.warn('FMP: Yahoo Finance ROE not available');
         }
       } catch (error) {
-        console.error('FMP: Error calculating ROE:', error instanceof Error ? error.message : 'Unknown error');
+        if (axios.isAxiosError(error)) {
+          if (error.response?.status === 404) {
+            console.warn('FMP: Yahoo Finance ROE not found for', symbol);
+          } else if (error.response?.status === 500) {
+            console.warn('FMP: Yahoo Finance API error:', error.response?.data?.detail || error.message);
+          } else {
+            console.warn('FMP: Failed to fetch ROE from Yahoo Finance:', error.message);
+          }
+        } else {
+          console.warn('FMP: Error fetching Yahoo Finance ROE:', error instanceof Error ? error.message : 'Unknown error');
+        }
       }
     }
 
