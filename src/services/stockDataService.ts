@@ -22,11 +22,9 @@ const mergeStockData = (
                      symbol;
 
   // Get EPS - required for calculations
+  // FMP quote may have eps, but fundamentals is more reliable
   let eps = fmpFundamentals?.eps ?? 
-            parseFloat(quoteData.eps) ?? 
-            parseFloat(quoteData.earnings_per_share) ?? 
-            parseFloat(quoteData.diluted_eps) ?? 
-            null;
+            (quoteData.eps !== undefined ? quoteData.eps : null);
   
   if (eps === null || eps === undefined || isNaN(eps)) {
     throw new Error('Unable to retrieve Earnings Per Share (EPS) data. This is required for calculations. Please check your FMP API key or try a different stock symbol.');
@@ -52,10 +50,7 @@ const mergeStockData = (
     // Fundamentals from FMP (required)
     eps: eps,
     peRatio: fmpFundamentals?.peRatio ?? 
-             parseFloat(quoteData.pe_ratio) ?? 
-             parseFloat(quoteData.pe) ??
-             parseFloat(quoteData.price_to_earnings) ??
-             null,
+             (quoteData.pe !== undefined ? quoteData.pe : null),
     roe: fmpFundamentals?.roe ?? null,
     debtToEquity: fmpFundamentals?.debtToEquity ?? null,
     currentRatio: fmpFundamentals?.currentRatio ?? null,
