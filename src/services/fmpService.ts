@@ -231,6 +231,7 @@ const mapResponseToFundamentals = (
 
   // Sales/Revenue Growth: From growth endpoint (new /stable/ endpoints use growthRevenue)
   // growthRevenue is a decimal (0.14 = 14%), normalizeGrowth will convert to percentage
+  // NOTE: FMP may return quarterly growth, so values < 5% might be quarterly, not annual
   const salesGrowthFields = [
     growth.growthRevenue,          // New /stable/ endpoint field (PRIMARY)
     growth.growthSales,
@@ -243,6 +244,10 @@ const mapResponseToFundamentals = (
   if (salesGrowthValue !== undefined && salesGrowthValue !== null) {
     const normalized = normalizeGrowth(salesGrowthValue);
     if (normalized !== null) {
+      // Warn if growth seems too low (might be quarterly instead of annual)
+      if (Math.abs(normalized) < 5 && normalized !== 0) {
+        console.warn('FMP: Sales Growth seems unusually low (', normalized, '%). This might be quarterly growth, not annual. Consider verifying with income statements.');
+      }
       fundamentals.salesGrowth = normalized;
       console.log('FMP: Sales Growth extracted:', normalized, '% from field:', 
         growth.growthRevenue !== undefined ? 'growthRevenue' : 'other');
@@ -414,17 +419,27 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
     }
 
     // Try Income Statement Growth for growth rates
-    // New endpoint format: /stable/income-statement-growth?symbol=AAPL&apikey=KEY&limit=1
+    // IMPORTANT: Get multiple periods and use the most recent annual data
+    // The endpoint returns quarterly growth, so we need to find annual growth or use TTM data
     try {
       const growthResponse = await axios.get(`${BASE_URL}/income-statement-growth`, {
-        params: { symbol: symbol, apikey: API_KEY, limit: 1 },
+        params: { symbol: symbol, apikey: API_KEY, limit: 10 }, // Get more periods to find annual
         headers: { 'Accept': 'application/json' },
         timeout: 5000
       });
       
       if (growthResponse.data && Array.isArray(growthResponse.data) && growthResponse.data.length > 0) {
-        growthData = growthResponse.data[0];
-        console.log('FMP: Income Statement Growth data fetched');
+        // Try to find the most recent annual period (Q4 or full year)
+        // If not available, use the most recent period
+        const annualPeriod = growthResponse.data.find((period: any) => {
+          const date = period.date || '';
+          // Q4 typically ends in Dec/Jan, or look for annual reports
+          return date.includes('12-31') || date.includes('01-31') || period.period === 'FY';
+        }) || growthResponse.data[0];
+        
+        growthData = annualPeriod;
+        console.log('FMP: Income Statement Growth data fetched (period:', growthData.date || 'N/A', ')');
+        console.log('FMP: Growth values - EPS:', growthData.growthEPS, 'Revenue:', growthData.growthRevenue);
       } else if (growthResponse.data && !Array.isArray(growthResponse.data)) {
         growthData = growthResponse.data;
       }
@@ -434,6 +449,12 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
       } else {
         console.warn('FMP: Income Statement Growth endpoint failed');
       }
+    }
+    
+    // Alternative: Try to calculate growth from income statements if growth endpoint is insufficient
+    // This is a fallback if growth data seems wrong (e.g., quarterly instead of annual)
+    if (growthData && (Math.abs(growthData.growthEPS || 0) < 0.05 || Math.abs(growthData.growthRevenue || 0) < 0.05)) {
+      console.warn('FMP: Growth rates seem unusually low, may be quarterly data. Consider using income statements for annual growth.');
     }
 
     // Fallback: Try Profile endpoint if we're missing basic data
