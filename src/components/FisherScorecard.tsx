@@ -98,8 +98,43 @@ export const FisherScorecard: React.FC<FisherScorecardProps> = ({ stockData, onS
       
     } catch (err) {
       console.error('Error loading Fisher data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load Fisher analysis');
+      
+      // Provide user-friendly error message
+      let errorMessage = 'Failed to load Fisher analysis';
+      if (err instanceof Error) {
+        if (err.message.includes('Cannot connect to Scuttlebutt backend')) {
+          errorMessage = 'Scuttlebutt research backend is unavailable. Quantitative analysis is still available.';
+        } else if (err.message.includes('not configured')) {
+          errorMessage = 'Scuttlebutt backend is not configured. Please set VITE_SCUTTLEBUTT_API_URL.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
       setLoading(false);
+      
+      // Still show quantitative criteria even if qualitative research fails
+      try {
+        const quantitativeCriteria = calculateQuantitativeFisherCriteria(stockData);
+        const overallScore = calculateOverallFisherScore(quantitativeCriteria);
+        
+        const partialScorecard: FisherScorecardType = {
+          symbol: stockData.symbol,
+          companyName: stockData.companyName,
+          overallScore,
+          criteria: quantitativeCriteria,
+          createdAt: new Date(),
+          lastUpdated: new Date(),
+        };
+        
+        setScorecard(partialScorecard);
+        if (onScoreChange) {
+          onScoreChange(overallScore);
+        }
+      } catch (calcError) {
+        console.error('Error calculating quantitative criteria:', calcError);
+      }
     }
   };
 
