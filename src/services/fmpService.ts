@@ -580,8 +580,9 @@ export const fetchFundamentals = async (symbol: string): Promise<FMPFundamentals
       });
       
       if (yahooRoeResponse.data && yahooRoeResponse.data.roe) {
-        fundamentals.roe = yahooRoeResponse.data.roe;
-        console.log('FMP: ✅ Yahoo Finance ROE:', fundamentals.roe?.toFixed(2) || 'N/A', '%');
+        const yahooROE = yahooRoeResponse.data.roe;
+        fundamentals.roe = yahooROE;
+        console.log('FMP: ✅ Yahoo Finance ROE:', yahooROE.toFixed(2), '%');
       } else {
         console.warn('FMP: Yahoo Finance ROE not available');
       }
